@@ -42,7 +42,7 @@ cd backend
 npm install
 cd ../frontend
 npm install
-git clone https://github.com/yourusername/mern-quantum.git
+git clone https://github.com/mattiagiuliani/mern-quantum.git
 
 ---
 
