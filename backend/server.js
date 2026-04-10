@@ -1,13 +1,18 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import startPort from './controllers/port.js';
+import express from 'express'
+import cors from 'cors'
+import cookieParser from 'cookie-parser'
+import { connectDB } from './config/db.js'
+import authRoutes from './routes/auth.routes.js'
+import circuitRoutes from './routes/circuit.routes.js'
 
-dotenv.config();
-const app = express();
-app.use(cors());
-app.use(express.json());
+await connectDB()
 
-app.get('/', (req, res) => res.send('Backend MERN Quantum up!'));
+const app = express()
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
+app.use(express.json())
+app.use(cookieParser())
 
-startPort(app, 5000);
+app.use('/api/auth', authRoutes)
+app.use('/api/circuits', circuitRoutes)
+
+app.listen(3001, () => console.log('Server on :3001'))
