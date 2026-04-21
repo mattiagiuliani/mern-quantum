@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcrypt'
 
 const userSchema = new mongoose.Schema(
   {
@@ -30,11 +30,10 @@ const userSchema = new mongoose.Schema(
 )
 
 // Hash password prima del salvataggio
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   // Solo se la password è stata modificata (nuovo utente o cambio pw)
-  if (!this.isModified('password')) return next()
+  if (!this.isModified('password')) return
   this.password = await bcrypt.hash(this.password, 12)
-  next()
 })
 
 // Metodo istanza: confronta password in chiaro con hash

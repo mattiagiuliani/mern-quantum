@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import User from './models/User.model.js'
+import User from '../models/User.model.js'
 
 /**
  * Middleware protect — verifica il JWT nel cookie HttpOnly.

@@ -78,7 +78,7 @@ const TIMELINE = [
   { year: '1994', text: 'Shor trova l\'algoritmo per fattorizzare i numeri con il quantum', dot: '#A78BFA' },
   { year: '1996', text: 'Grover crea un algoritmo quantistico di ricerca velocissima', dot: '#FCA5A5' },
   { year: '2019', text: 'Google dichiara la "supremazia quantistica" con 53 qubit', dot: '#FCD34D' },
-  { year: '2023', text: 'IBM supera i 1000 qubit con il processore Condor', dot: '#6EE7D0' },
+  { year: '2023', text: 'I processori quantistici superano quota 1000 qubit su architetture sperimentali', dot: '#6EE7D0' },
   { year: 'oggi', text: 'L\'era NISQ: macchine rumorose ma già utilizzabili nel cloud', dot: '#A78BFA' },
 ]
 
@@ -396,7 +396,7 @@ export default function HomePage() {
             opacity: 0.8,
             zIndex: 2,
           }}>
-            IBM Quantum · Quantum Computing Lab
+            mern-quantum · Quantum Computing Lab
           </div>
 
           {/* titolo */}
@@ -519,7 +519,7 @@ export default function HomePage() {
             </p>
             <p>
               Non è magia. È fisica. E oggi puoi accederci direttamente dal tuo browser,
-              grazie a IBM Quantum.
+              con un simulatore locale scritto in JavaScript.
             </p>
           </div>
         </section>
@@ -775,7 +775,7 @@ export default function HomePage() {
             margin: '0 auto 48px',
             lineHeight: 1.7,
           }}>
-            Scegli i gate, posizionali sui qubit, invia ad IBM Quantum.
+            Scegli i gate, posizionali sui qubit, esegui la simulazione JS sul backend.
             I risultati arrivano in secondi, direttamente nel tuo browser.
           </p>
 

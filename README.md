@@ -1,7 +1,10 @@
 # MERN Quantum
 
 MERN Quantum is a full-stack web application for simulating quantum circuits interactively.  
-Inspired by [IBM Quantum Composer](https://quantum-computing.ibm.com/), this app allows users to:
+The project is fully JavaScript-based (MERN stack) and uses a local JS simulator on the backend.
+It does not depend on IBM services or Python runtimes.
+
+This app allows users to:
 
 - Build quantum circuits using basic gates (H, X, Measure)  
 - Run simulations with single or multiple shots  
@@ -13,10 +16,16 @@ Inspired by [IBM Quantum Composer](https://quantum-computing.ibm.com/), this app
 
 ## 🚀 Features
 
+Le feature frontend sono organizzate in `frontend/src/features`.
+
 ### Core
 - Interactive Circuit Builder  
-- Run Simulation (single/multi-run)  
+- Feature A: Multi-run nel Circuit Builder con shots configurabili (128/512/1024/4096)  
 - Results visualization (probabilities)  
+
+Implementazione Feature A:
+- File principale: `frontend/src/features/feature-a-multi-run/feature-a-multi-run.js`
+- Sottofile collegati (stato/costanti/utils) nella stessa cartella feature
 
 ### Additional
 - Predefined circuit templates  
@@ -32,7 +41,7 @@ Inspired by [IBM Quantum Composer](https://quantum-computing.ibm.com/), this app
 - Backend: Node.js, Express.js  
 - Database: MongoDB  
 - Authentication: JWT + bcrypt  
-- Testing: Jest (backend tests)  
+- Testing: Node.js test runner (`node --test`)  
 
 ---
 
@@ -48,9 +57,18 @@ git clone https://github.com/mattiagiuliani/mern-quantum.git
 
 Setup environment variables:
 
-MONGO_URI=your_mongodb_uri
+backend/.env
+MONGODB_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
-PORT=5000
+PORT=3001
+QUANTUM_SEMANTICS_MODE=v2
+
+frontend/.env
+VITE_API_URL=http://localhost:3001/api
+
+`QUANTUM_SEMANTICS_MODE` options:
+- `v2` (default): simplified, stable semantics (H toggles superposition, X acts as classical NOT only on deterministic states, M collapses/output)
+- `v1`: legacy behavior (quick rollback mode)
 
 ---
 
@@ -64,11 +82,11 @@ npm run dev
 Run frontend:
 
 cd frontend
-npm start
+npm run dev
 
 ---
 
-Open http://localhost:3000 in your browser.
+Open http://localhost:5173 in your browser.
 
 ---
 
@@ -84,6 +102,7 @@ npm test
 Tests include:
 
 Circuit simulation logic
+Circuit API input validation
 Auth endpoints (login/register)
 Protected routes
 
