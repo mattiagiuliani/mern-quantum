@@ -28,6 +28,40 @@ export async function applyGate(qubitStates, gate, qubitIndex) {
   return data
 }
 
+// ─── templates ───────────────────────────────────────────────────────────────
+
+export async function createTemplate(payload) {
+  const { data } = await api.post('/templates', payload)
+  return data
+}
+
+export async function getMyTemplates() {
+  const { data } = await api.get('/templates/mine')
+  return data
+}
+
+export async function getPublicTemplates(tag) {
+  const { data } = await api.get('/templates/public', {
+    params: tag ? { tag } : undefined,
+  })
+  return data
+}
+
+export async function getTemplateById(id) {
+  const { data } = await api.get(`/templates/${id}`)
+  return data
+}
+
+export async function updateTemplate(id, payload) {
+  const { data } = await api.put(`/templates/${id}`, payload)
+  return data
+}
+
+export async function deleteTemplate(id) {
+  const { data } = await api.delete(`/templates/${id}`)
+  return data
+}
+
 // ─── auth ─────────────────────────────────────────────────────────────────────
 
 export async function loginUser(email, password) {

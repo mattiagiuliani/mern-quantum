@@ -5,6 +5,7 @@ import express from 'express'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/auth.routes.js'
 import circuitRoutes from './routes/circuit.routes.js'
+import templateRoutes from './routes/template.routes.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -15,6 +16,7 @@ app.use(cookieParser())
 
 app.use('/api/auth', authRoutes)
 app.use('/api/circuits', circuitRoutes)
+app.use('/api/templates', templateRoutes)
 
 const startServer = async () => {
   try {

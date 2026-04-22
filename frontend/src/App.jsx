@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 
 const HomePage = lazy(() => import('./pages/Homepage'))
 const CircuitBuilderPage = lazy(() => import('./pages/CircuitBuilderPage'))
+const TemplatesPage = lazy(() => import('./pages/TemplatesPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 
@@ -36,6 +37,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/circuit-builder" element={<CircuitBuilderPage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Routes>

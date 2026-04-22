@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
+import { Button } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 
-/* ─── dati contenuto ───────────────────────────────────────────────────────── */
+/* ─── content data ─────────────────────────────────────────────────────────── */
 
 const CONCEPTS = [
   {
     id: 'qubit',
     symbol: '|ψ⟩',
-    title: 'Il qubit',
-    subtitle: 'L\'unità base del quantum computing',
-    body: `Un bit classico è come un interruttore: o acceso (1) o spento (0). Un qubit, invece, è come una moneta che gira nell'aria — finché non la fermi, non è né testa né croce, ma un po' di entrambe. Questa proprietà si chiama **sovrapposizione** e permette a un computer quantistico di esplorare milioni di soluzioni contemporaneamente.`,
+    title: 'The qubit',
+    subtitle: 'The basic unit of quantum computing',
+    body: `A classical bit is like a switch: either on (1) or off (0). A qubit is more like a spinning coin - until you stop it, it is neither heads nor tails, but a bit of both. This property is called **superposition** and allows a quantum computer to explore millions of solutions at the same time.`,
     color: '#6EE7D0',
     accent: '#0D9488',
     icon: (
@@ -24,9 +25,9 @@ const CONCEPTS = [
   {
     id: 'entanglement',
     symbol: '🔗',
-    title: 'L\'entanglement',
-    subtitle: 'Connessione istantanea a distanza',
-    body: `Due qubit "entangled" sono come due dadi magici: qualunque cosa accada a uno, l'altro lo sa immediatamente, anche dall'altra parte dell'universo. Einstein lo chiamò "azione spettrale a distanza" e non ci credette mai. Eppure è reale, misurabile, e alla base delle reti di comunicazione quantistica e della crittografia del futuro.`,
+    title: 'Entanglement',
+    subtitle: 'Instant connection at a distance',
+    body: `Two entangled qubits are like two magical dice: whatever happens to one, the other knows immediately, even from the other side of the universe. Einstein called it "spooky action at a distance" and never fully accepted it. Yet it is real, measurable, and at the core of quantum communication networks and future cryptography.`,
     color: '#A78BFA',
     accent: '#7C3AED',
     icon: (
@@ -42,9 +43,9 @@ const CONCEPTS = [
   {
     id: 'interference',
     symbol: '〰',
-    title: 'L\'interferenza',
-    subtitle: 'Amplificare il giusto, cancellare il rumore',
-    body: `I computer quantistici non "provano" tutte le soluzioni possibili in parallelo — le fanno interferire tra loro come onde d'acqua. Le soluzioni sbagliate si cancellano a vicenda (interferenza distruttiva), quelle giuste si amplificano (interferenza costruttiva). Il risultato? La risposta corretta emerge quasi sempre.`,
+    title: 'Interference',
+    subtitle: 'Amplify what is right, cancel what is noise',
+    body: `Quantum computers do not simply "try" every possible solution in parallel - they let solutions interfere like water waves. Wrong answers cancel each other out (destructive interference), while correct ones reinforce each other (constructive interference). The result? The right answer is far more likely to emerge.`,
     color: '#FCA5A5',
     accent: '#DC2626',
     icon: (
@@ -57,9 +58,9 @@ const CONCEPTS = [
   {
     id: 'gates',
     symbol: 'H',
-    title: 'I gate quantistici',
-    subtitle: 'Le istruzioni del circuito',
-    body: `Come i circuiti classici usano porte logiche (AND, OR, NOT), i computer quantistici usano **gate quantistici**. Il gate H (Hadamard) mette un qubit in sovrapposizione. Il gate X lo "capovolge". Il gate CX (CNOT) lega due qubit insieme. Combinando questi mattoni si costruiscono algoritmi capaci di fattorizzare numeri enormi o simulare molecole complesse.`,
+    title: 'Quantum gates',
+    subtitle: 'The instructions of a circuit',
+    body: `Just as classical circuits use logic gates (AND, OR, NOT), quantum computers use **quantum gates**. The H (Hadamard) gate puts a qubit into superposition. The X gate flips it. The CX (CNOT) gate links two qubits together. Combining these building blocks creates algorithms that can factor huge numbers or simulate complex molecules.`,
     color: '#FCD34D',
     accent: '#D97706',
     icon: (
@@ -74,15 +75,15 @@ const CONCEPTS = [
 ]
 
 const TIMELINE = [
-  { year: '1981', text: 'Feynman propone la simulazione quantistica', dot: '#6EE7D0' },
-  { year: '1994', text: 'Shor trova l\'algoritmo per fattorizzare i numeri con il quantum', dot: '#A78BFA' },
-  { year: '1996', text: 'Grover crea un algoritmo quantistico di ricerca velocissima', dot: '#FCA5A5' },
-  { year: '2019', text: 'Google dichiara la "supremazia quantistica" con 53 qubit', dot: '#FCD34D' },
-  { year: '2023', text: 'I processori quantistici superano quota 1000 qubit su architetture sperimentali', dot: '#6EE7D0' },
-  { year: 'oggi', text: 'L\'era NISQ: macchine rumorose ma già utilizzabili nel cloud', dot: '#A78BFA' },
+  { year: '1981', text: 'Feynman proposes quantum simulation', dot: '#6EE7D0' },
+  { year: '1994', text: 'Shor introduces an algorithm to factor numbers with quantum computing', dot: '#A78BFA' },
+  { year: '1996', text: 'Grover creates a fast quantum search algorithm', dot: '#FCA5A5' },
+  { year: '2019', text: 'Google announces "quantum supremacy" with 53 qubits', dot: '#FCD34D' },
+  { year: '2023', text: 'Quantum processors cross 1000 qubits on experimental architectures', dot: '#6EE7D0' },
+  { year: 'today', text: 'The NISQ era: noisy machines already usable in the cloud', dot: '#A78BFA' },
 ]
 
-/* ─── animazione particelle di sfondo ─────────────────────────────────────── */
+/* ─── background particle animation ───────────────────────────────────────── */
 
 function QuantumCanvas() {
   const canvasRef = useRef(null)
@@ -107,7 +108,7 @@ function QuantumCanvas() {
     function draw() {
       ctx.clearRect(0, 0, W, H)
 
-      // connessioni
+      // connections
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[i].x - nodes[j].x
@@ -124,7 +125,7 @@ function QuantumCanvas() {
         }
       }
 
-      // nodi
+      // nodes
       nodes.forEach(n => {
         ctx.beginPath()
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2)
@@ -153,7 +154,7 @@ function QuantumCanvas() {
   )
 }
 
-/* ─── componente card concetto ─────────────────────────────────────────────── */
+/* ─── concept card component ──────────────────────────────────────────────── */
 
 function ConceptCard({ concept, index }) {
   const [hovered, setHovered] = useState(false)
@@ -230,7 +231,7 @@ function ConceptCard({ concept, index }) {
   )
 }
 
-/* ─── homepage principale ──────────────────────────────────────────────────── */
+/* ─── main homepage ───────────────────────────────────────────────────────── */
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -374,7 +375,7 @@ export default function HomePage() {
         }}>
           <QuantumCanvas />
 
-          {/* scan line decorativa */}
+          {/* decorative scan line */}
           <div style={{
             position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 1,
           }}>
@@ -385,7 +386,7 @@ export default function HomePage() {
             }} />
           </div>
 
-          {/* label top */}
+          {/* top label */}
           <div style={{
             fontFamily: "'Space Mono', monospace",
             fontSize: 11,
@@ -399,7 +400,7 @@ export default function HomePage() {
             mern-quantum · Quantum Computing Lab
           </div>
 
-          {/* titolo */}
+          {/* title */}
           <h1 className="hero-title" style={{
             fontFamily: "'Playfair Display', Georgia, serif",
             fontSize: 'clamp(48px, 8vw, 88px)',
@@ -410,14 +411,14 @@ export default function HomePage() {
             marginBottom: 12,
             zIndex: 2,
           }}>
-            Il computer
+            The computer
             <br />
-            <em style={{ color: '#6EE7D0', fontStyle: 'italic' }}>che pensa</em>
+            <em style={{ color: '#6EE7D0', fontStyle: 'italic' }}>that thinks</em>
             <br />
-            in quanti
+            in qubits
           </h1>
 
-          {/* sottotitolo */}
+          {/* subtitle */}
           <p style={{
             fontFamily: "'Lora', Georgia, serif",
             fontSize: 18,
@@ -428,23 +429,26 @@ export default function HomePage() {
             marginBottom: 48,
             zIndex: 2,
           }}>
-            Un viaggio dentro la fisica che sta reinventando il calcolo.
-            Costruisci il tuo primo circuito quantistico, nessuna laurea richiesta.
+            A journey through the physics reinventing computation.
+            Build your first quantum circuit, no degree required.
           </p>
 
           {/* CTA buttons */}
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', zIndex: 2 }}>
-            <button className="cta-btn" onClick={() => navigate('/circuit-builder')}>
-              <span>Costruisci un circuito</span>
-            </button>
-            <button className="cta-btn-secondary" onClick={() => {
+            <Button variant="link" className="cta-btn" onClick={() => navigate('/circuit-builder')} style={{ textDecoration: 'none' }}>
+              <span>Build a Circuit</span>
+            </Button>
+            <Button variant="link" className="cta-btn-secondary" onClick={() => navigate('/templates')} style={{ textDecoration: 'none' }}>
+              Template Library
+            </Button>
+            <Button variant="link" className="cta-btn-secondary" onClick={() => {
               document.getElementById('concepts')?.scrollIntoView({ behavior: 'smooth' })
-            }}>
-              Scopri di più ↓
-            </button>
+            }} style={{ textDecoration: 'none' }}>
+              Learn More ↓
+            </Button>
           </div>
 
-          {/* Bloch sphere decorativa */}
+          {/* decorative Bloch sphere */}
           <div style={{
             position: 'absolute',
             right: 'clamp(20px, 6vw, 100px)',
@@ -469,7 +473,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── INTRO NARRATIVA ── */}
+        {/* ── INTRO NARRATIVE ── */}
         <section
           id="concepts"
           ref={el => sectionRefs.current['intro'] = el}
@@ -484,7 +488,7 @@ export default function HomePage() {
             textTransform: 'uppercase',
             marginBottom: 20,
           }}>
-            01 — Introduzione
+            01 - Introduction
           </div>
           <h2 style={{
             fontFamily: "'Playfair Display', Georgia, serif",
@@ -494,7 +498,7 @@ export default function HomePage() {
             lineHeight: 1.25,
             marginBottom: 32,
           }}>
-            Perché i computer classici hanno un limite
+            Why classical computers have limits
           </h2>
           <div style={{
             fontSize: 17,
@@ -505,26 +509,26 @@ export default function HomePage() {
             gap: 20,
           }}>
             <p>
-              Ogni computer che usi oggi — dal tuo smartphone ai server di Google —
-              lavora con <strong style={{ color: '#F1EDE4' }}>bit</strong>: interruttori che possono essere
-              0 oppure 1. Sono incredibilmente veloci, ma rimangono fondamentalmente
-              degli interruttori. Per certi problemi, anche miliardi di interruttori
-              che lavorano per millenni non basterebbero.
+              Every computer you use today - from your smartphone to Google servers -
+              works with <strong style={{ color: '#F1EDE4' }}>bits</strong>: switches that can be
+              0 or 1. They are incredibly fast, but still fundamentally just
+              switches. For some problems, even billions of switches working for
+              millennia would not be enough.
             </p>
             <p>
-              Immagina di dover trovare la chiave giusta in un mazzo di un trilione di chiavi.
-              Un computer classico le prova una per una. Un computer quantistico, sfruttando
-              le leggi della meccanica quantistica, può <em style={{ color: '#6EE7D0', fontStyle: 'italic' }}>
-              sentire</em> dove si trova la chiave giusta senza provarle tutte.
+              Imagine finding the right key in a ring with a trillion keys.
+              A classical computer tests them one by one. A quantum computer, by using
+              the laws of quantum mechanics, can <em style={{ color: '#6EE7D0', fontStyle: 'italic' }}>
+              sense</em> where the right key is without trying them all.
             </p>
             <p>
-              Non è magia. È fisica. E oggi puoi accederci direttamente dal tuo browser,
-              con un simulatore locale scritto in JavaScript.
+              It is not magic. It is physics. And today you can access it directly from your browser,
+              with a local simulator written in JavaScript.
             </p>
           </div>
         </section>
 
-        {/* ── CONCETTI CHIAVE ── */}
+        {/* ── KEY CONCEPTS ── */}
         <section
           ref={el => sectionRefs.current['concepts'] = el}
           data-section="concepts"
@@ -539,7 +543,7 @@ export default function HomePage() {
               textTransform: 'uppercase',
               marginBottom: 16,
             }}>
-              02 — I mattoni fondamentali
+              02 - Core building blocks
             </div>
             <h2 style={{
               fontFamily: "'Playfair Display', Georgia, serif",
@@ -547,7 +551,7 @@ export default function HomePage() {
               fontWeight: 700,
               color: '#F1EDE4',
             }}>
-              Quattro idee che cambiano tutto
+              Four ideas that change everything
             </h2>
           </div>
 
@@ -560,7 +564,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── CONFRONTO CLASSICO vs QUANTISTICO ── */}
+        {/* ── CLASSICAL vs QUANTUM COMPARISON ── */}
         <section
           ref={el => sectionRefs.current['compare'] = el}
           data-section="compare"
@@ -582,7 +586,7 @@ export default function HomePage() {
                 textTransform: 'uppercase',
                 marginBottom: 16,
               }}>
-                03 — Confronto
+                03 - Comparison
               </div>
               <h2 style={{
                 fontFamily: "'Playfair Display', Georgia, serif",
@@ -590,7 +594,7 @@ export default function HomePage() {
                 fontWeight: 700,
                 color: '#F1EDE4',
               }}>
-                Classico vs Quantistico
+                Classical vs Quantum
               </h2>
             </div>
 
@@ -605,7 +609,7 @@ export default function HomePage() {
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 borderRadius: '12px 0 0 0',
-              }}>Computer Classico</div>
+              }}>Classical Computer</div>
               <div style={{
                 background: 'rgba(110,231,208,0.08)',
                 padding: '16px 24px',
@@ -615,15 +619,15 @@ export default function HomePage() {
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 borderRadius: '0 12px 0 0',
-              }}>Computer Quantistico</div>
+              }}>Quantum Computer</div>
 
               {[
-                ['Bit: 0 oppure 1', 'Qubit: 0, 1, o entrambi insieme'],
-                ['Prova soluzioni una per una', 'Esplora molte soluzioni in parallelo'],
-                ['Robusto, stabile, veloce', 'Fragile, freddo, richiede isolamento'],
-                ['Ottimo per task quotidiani', 'Ottimo per problemi intrattabili'],
-                ['Basato su transistor al silicio', 'Basato su fisica quantistica'],
-                ['Funziona a temperatura ambiente', 'Funziona vicino allo zero assoluto (−273°C)'],
+                ['Bit: 0 or 1', 'Qubit: 0, 1, or both at once'],
+                ['Tests solutions one by one', 'Explores many solutions in parallel'],
+                ['Robust, stable, fast', 'Fragile, cold, needs isolation'],
+                ['Great for everyday tasks', 'Great for intractable problems'],
+                ['Based on silicon transistors', 'Based on quantum physics'],
+                ['Works at room temperature', 'Works near absolute zero (-273 °C)'],
               ].map(([classic, quantum], i) => (
                 <>
                   <div key={`c-${i}`} style={{
@@ -676,7 +680,7 @@ export default function HomePage() {
               textTransform: 'uppercase',
               marginBottom: 16,
             }}>
-              04 — Storia
+              04 - History
             </div>
             <h2 style={{
               fontFamily: "'Playfair Display', Georgia, serif",
@@ -684,7 +688,7 @@ export default function HomePage() {
               fontWeight: 700,
               color: '#F1EDE4',
             }}>
-              Quarant'anni di rivoluzioni
+              Forty years of breakthroughs
             </h2>
           </div>
 
@@ -732,7 +736,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── CTA FINALE ── */}
+        {/* ── FINAL CTA ── */}
         <section
           ref={el => sectionRefs.current['cta'] = el}
           data-section="cta"
@@ -751,7 +755,7 @@ export default function HomePage() {
             textTransform: 'uppercase',
             marginBottom: 24,
           }}>
-            05 — Inizia
+            05 - Start
           </div>
           <h2 style={{
             fontFamily: "'Playfair Display', Georgia, serif",
@@ -763,9 +767,9 @@ export default function HomePage() {
             maxWidth: 600,
             margin: '0 auto 20px',
           }}>
-            Pronti a costruire
+            Ready to build
             <br />
-            <em style={{ color: '#A78BFA', fontStyle: 'italic' }}>il tuo primo circuito?</em>
+            <em style={{ color: '#A78BFA', fontStyle: 'italic' }}>your first circuit?</em>
           </h2>
           <p style={{
             fontSize: 16,
@@ -775,21 +779,21 @@ export default function HomePage() {
             margin: '0 auto 48px',
             lineHeight: 1.7,
           }}>
-            Scegli i gate, posizionali sui qubit, esegui la simulazione JS sul backend.
-            I risultati arrivano in secondi, direttamente nel tuo browser.
+            Pick gates, place them on qubits, run the JS simulation on the backend.
+            Results come back in seconds, directly in your browser.
           </p>
 
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="cta-btn" onClick={() => navigate('/circuit-builder')}
+            <Button variant="link" className="cta-btn" onClick={() => navigate('/circuit-builder')}
               style={{ fontSize: 13, padding: '16px 40px' }}>
-              <span>Apri il Circuit Builder →</span>
-            </button>
-            <button className="cta-btn-secondary" onClick={() => navigate('/register')}>
-              Registrati gratis
-            </button>
+              <span>Open Circuit Builder →</span>
+            </Button>
+            <Button variant="link" className="cta-btn-secondary" onClick={() => navigate('/register')} style={{ textDecoration: 'none' }}>
+              Sign Up for Free
+            </Button>
           </div>
 
-          {/* formula decorativa */}
+          {/* decorative formula */}
           <div style={{
             marginTop: 80,
             fontFamily: "'Space Mono', monospace",

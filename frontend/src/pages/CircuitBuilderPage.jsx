@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { Button, Spinner } from 'react-bootstrap'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { applyGate as apiApplyGate } from '../api/apiClient'
 import {
   SHOT_PRESETS,
@@ -15,7 +17,7 @@ const GATES = {
   H: {
     label: 'H',
     name: 'Hadamard',
-    desc: 'Mette/toglie la superposition (in modo semplificato).',
+    desc: 'Creates/removes superposition (simplified model).',
     color: '#6EE7D0',
     bg: 'rgba(110,231,208,0.12)',
     border: 'rgba(110,231,208,0.5)',
@@ -23,7 +25,7 @@ const GATES = {
   X: {
     label: 'X',
     name: 'Pauli-X',
-    desc: 'NOT sullo stato classico: capovolge |0⟩↔|1⟩.',
+    desc: 'Classical NOT behavior: flips |0⟩↔|1⟩.',
     color: '#FCA5A5',
     bg: 'rgba(252,165,165,0.12)',
     border: 'rgba(252,165,165,0.5)',
@@ -31,7 +33,7 @@ const GATES = {
   M: {
     label: '⊕',
     name: 'Measure',
-    desc: 'Collassa la sovrapposizione → restituisce 0 o 1.',
+    desc: 'Collapses superposition and returns 0 or 1.',
     color: '#FCD34D',
     bg: 'rgba(252,211,77,0.12)',
     border: 'rgba(252,211,77,0.5)',
@@ -41,10 +43,111 @@ const GATES = {
 const emptyCircuit     = () => Array.from({ length: NUM_QUBITS }, () => Array(MAX_STEPS).fill(null))
 const initialLiveState = () => Array.from({ length: NUM_QUBITS }, () => ({ value: 0, superposition: false }))
 
+const isValidGate = (gate) => gate === null || gate === 'H' || gate === 'X' || gate === 'M'
+
+function normalizeTemplateCircuit(circuit) {
+  const next = emptyCircuit()
+
+  for (let qubit = 0; qubit < Math.min(NUM_QUBITS, circuit?.length ?? 0); qubit++) {
+    const row = circuit[qubit]
+    if (!Array.isArray(row)) continue
+
+    for (let step = 0; step < Math.min(MAX_STEPS, row.length); step++) {
+      const gate = row[step]
+      if (isValidGate(gate)) {
+        next[qubit][step] = gate
+      }
+    }
+  }
+
+  return next
+}
+
+function buildGateSequenceFromCircuit(circuit) {
+  const operations = []
+  let opCounter = 0
+
+  for (let step = 0; step < MAX_STEPS; step++) {
+    for (let qubit = 0; qubit < NUM_QUBITS; qubit++) {
+      const gate = circuit[qubit][step]
+      if (!gate) continue
+
+      operations.push({
+        id: `tpl-${Date.now()}-${opCounter++}-${qubit}-${step}`,
+        gate,
+        qubit,
+        step,
+      })
+    }
+  }
+
+  return operations
+}
+
 const qubitDisplay = (q) => ({
   label: q.superposition ? '|ψ⟩' : q.value === 1 ? '|1⟩' : '|0⟩',
   color: q.superposition ? '#A78BFA' : q.value === 1 ? '#6EE7D0' : 'rgba(255,255,255,0.25)',
   bg:    q.superposition ? 'rgba(167,139,250,0.1)' : q.value === 1 ? 'rgba(110,231,208,0.1)' : 'rgba(255,255,255,0.03)',
+})
+
+const BUILDER_BUTTON_STYLE_TOKENS = {
+  headerBase: {
+    background: 'transparent',
+    fontFamily: "'Space Mono', monospace",
+    fontSize: 11,
+    letterSpacing: '0.08em',
+    borderRadius: 6,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    textTransform: 'uppercase',
+  },
+  headerTemplates: {
+    border: '1px solid rgba(110,231,208,0.24)',
+    color: 'rgba(110,231,208,0.85)',
+    padding: '8px 12px',
+  },
+  headerReset: {
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: 'rgba(255,255,255,0.35)',
+    padding: '8px 16px',
+  },
+  shotsPresetBase: {
+    fontFamily: "'Space Mono', monospace",
+    fontSize: 10,
+    letterSpacing: '0.06em',
+    padding: '6px 8px',
+    borderRadius: 6,
+    minWidth: 46,
+  },
+  runButtonBase: {
+    background: 'transparent',
+    fontFamily: "'Space Mono', monospace",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    padding: '14px 20px',
+    borderRadius: 8,
+    textTransform: 'uppercase',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+}
+
+const buildShotPresetStyle = (isActive, isRunning) => ({
+  ...BUILDER_BUTTON_STYLE_TOKENS.shotsPresetBase,
+  background: isActive ? 'rgba(110,231,208,0.12)' : 'transparent',
+  border: `1px solid ${isActive ? 'rgba(110,231,208,0.45)' : 'rgba(255,255,255,0.15)'}`,
+  color: isActive ? '#6EE7D0' : 'rgba(255,255,255,0.45)',
+  cursor: isRunning ? 'default' : 'pointer',
+})
+
+const buildRunButtonStyle = (hasGates) => ({
+  ...BUILDER_BUTTON_STYLE_TOKENS.runButtonBase,
+  border: `1.5px solid ${hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.1)'}`,
+  color: hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.2)',
+  cursor: hasGates ? 'pointer' : 'default',
 })
 
 // ─── GateChip ─────────────────────────────────────────────────────────────────
@@ -155,7 +258,7 @@ function Cell({ gate, selectedGate, onClick, isNew = false, isFocused = false })
       }}
     >
       {gate && (
-        <div title="Click per rimuovere">
+        <div title="Click to remove">
           <GateChip type={gate} size="sm" isNew={isNew} />
         </div>
       )}
@@ -248,7 +351,7 @@ function InfoTooltip({ gate }) {
       color: 'rgba(255,255,255,0.25)',
       letterSpacing: '0.05em',
     }}>
-      ← seleziona un gate, poi clicca su un filo
+      ← select a gate, then click a wire
     </div>
   )
   const g = GATES[gate]
@@ -289,7 +392,7 @@ function LiveStatePanel({ liveState, measurementLog }) {
           textTransform: 'uppercase', marginBottom: 14,
           fontFamily: "'Space Mono', monospace",
         }}>
-          Stato live
+          Live state
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {liveState.map((q, i) => {
@@ -338,7 +441,7 @@ function LiveStatePanel({ liveState, measurementLog }) {
             textTransform: 'uppercase', marginBottom: 14,
             fontFamily: "'Space Mono', monospace",
           }}>
-            Misure
+            Measurements
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {measurementLog.map((m, i) => (
@@ -462,7 +565,7 @@ function CircuitSequencePanel({
           fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)',
           textTransform: 'uppercase', marginBottom: 10,
         }}>
-          Sequenza circuito
+          Circuit sequence
         </div>
         <div style={{
           fontFamily: "'Space Mono', monospace",
@@ -470,7 +573,7 @@ function CircuitSequencePanel({
           color: 'rgba(255,255,255,0.3)',
           letterSpacing: '0.05em',
         }}>
-          Nessun gate inserito.
+          No gates added.
         </div>
       </div>
     )
@@ -487,7 +590,7 @@ function CircuitSequencePanel({
         fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)',
         textTransform: 'uppercase', marginBottom: 12,
       }}>
-        Sequenza circuito (timeline)
+        Circuit sequence (timeline)
       </div>
 
       {(() => {
@@ -556,7 +659,7 @@ function CircuitSequencePanel({
                     gap: 6,
                     cursor: 'pointer',
                   }}
-                  title={`${gateMeta.name} su q[${op.qubit}] a t${op.step}`}
+                  title={`${gateMeta.name} on q[${op.qubit}] at t${op.step}`}
                 >
                   <div style={{
                     width: 18,
@@ -633,6 +736,8 @@ function CircuitSequencePanel({
 // ─── CircuitBuilderPage ───────────────────────────────────────────────────────
 
 export default function CircuitBuilderPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [circuit,        setCircuit]        = useState(emptyCircuit)
   const [gateSequence,   setGateSequence]   = useState([])
   const [selectedGate,   setSelectedGate]   = useState(null)
@@ -654,7 +759,42 @@ export default function CircuitBuilderPage() {
 
   const liveStateRef  = useRef(liveState)
   const measureIdRef  = useRef(0)
+  const appliedTemplateRef = useRef(null)
   useEffect(() => { liveStateRef.current = liveState }, [liveState])
+
+  const applyTemplateCircuit = useCallback((incomingCircuit) => {
+    const normalizedCircuit = normalizeTemplateCircuit(incomingCircuit)
+
+    setCircuit(normalizedCircuit)
+    setGateSequence(buildGateSequenceFromCircuit(normalizedCircuit))
+    setSelectedGate(null)
+    setFocusedCell(null)
+    setSelectedOpId(null)
+    setLastAddedOpId(null)
+    setLiveState(initialLiveState())
+    setMeasurementLog([])
+    resetMultiRun()
+  }, [resetMultiRun])
+
+  useEffect(() => {
+    const template = location.state?.templateToApply
+    if (!template?.circuit) return
+
+    const templateKey = template._id ?? template.id ?? JSON.stringify(template.circuit)
+    if (appliedTemplateRef.current === templateKey) return
+
+    const hasCurrentCircuit = circuit.some(row => row.some(gate => gate !== null))
+    const confirmed = !hasCurrentCircuit || window.confirm('Replace current circuit with selected template? Unsaved edits will be lost.')
+
+    if (confirmed) {
+      queueMicrotask(() => {
+        applyTemplateCircuit(template.circuit)
+      })
+    }
+
+    appliedTemplateRef.current = templateKey
+    navigate('/circuit-builder', { replace: true, state: null })
+  }, [applyTemplateCircuit, circuit, location.state, navigate])
 
   const handleGateSelect = (type) =>
     setSelectedGate(prev => prev === type ? null : type)
@@ -668,7 +808,7 @@ export default function CircuitBuilderPage() {
       return next
     })
 
-    // Salva la sequenza di inserimento gate in state React (timeline operazioni).
+    // Save insertion order to drive the operation timeline.
     const opId = `${Date.now()}-${Math.random().toString(16).slice(2)}-${qubitIdx}-${stepIdx}-${selectedGate}`
     setGateSequence(prev => [
       ...prev,
@@ -714,7 +854,7 @@ export default function CircuitBuilderPage() {
     })
 
     if (removedGate) {
-      // Rimuove l'ultima occorrenza coerente con la cella cancellata.
+      // Remove the latest matching operation for the cleared cell.
       setGateSequence(prev => {
         const idx = prev.map(op => op.gate === removedGate && op.qubit === qubitIdx && op.step === stepIdx).lastIndexOf(true)
         if (idx < 0) return prev
@@ -747,6 +887,14 @@ export default function CircuitBuilderPage() {
 
   const handleRun = async () => {
     await runCircuitWithSelectedShots(circuit)
+  }
+
+  const openTemplatesLibrary = () => {
+    navigate('/templates', {
+      state: {
+        circuitDraft: circuit.map((row) => [...row]),
+      },
+    })
   }
 
   const totalGates = circuit.flat().filter(Boolean).length
@@ -810,7 +958,7 @@ export default function CircuitBuilderPage() {
               mern-quantum · Circuit Builder
             </div>
             <h1 style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: '#F1EDE4', letterSpacing: '-0.02em' }}>
-              Costruisci il tuo circuito
+              Build Your Circuit
             </h1>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -829,25 +977,29 @@ export default function CircuitBuilderPage() {
                 textTransform: 'uppercase', padding: '6px 12px',
                 border: '1px solid rgba(110,231,208,0.25)', borderRadius: 6,
               }}>
-                {gateSequence.length} {gateSequence.length === 1 ? 'operazione' : 'operazioni'}
+                {gateSequence.length} {gateSequence.length === 1 ? 'operation' : 'operations'}
               </div>
             )}
-            <button
-              onClick={handleClear}
+            <Button
+              onClick={openTemplatesLibrary}
+              variant="outline-info"
               style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.35)',
-                fontFamily: "'Space Mono', monospace",
-                fontSize: 11, letterSpacing: '0.08em',
-                padding: '8px 16px', borderRadius: 6, cursor: 'pointer',
-                transition: 'all 0.2s', textTransform: 'uppercase',
+                ...BUILDER_BUTTON_STYLE_TOKENS.headerBase,
+                ...BUILDER_BUTTON_STYLE_TOKENS.headerTemplates,
               }}
-              onMouseEnter={e => { e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.color='rgba(255,255,255,0.6)' }}
-              onMouseLeave={e => { e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.color='rgba(255,255,255,0.35)' }}
+            >
+              Templates
+            </Button>
+            <Button
+              onClick={handleClear}
+              variant="outline-secondary"
+              style={{
+                ...BUILDER_BUTTON_STYLE_TOKENS.headerBase,
+                ...BUILDER_BUTTON_STYLE_TOKENS.headerReset,
+              }}
             >
               Reset
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -861,7 +1013,7 @@ export default function CircuitBuilderPage() {
             fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)',
             textTransform: 'uppercase', marginBottom: 14,
           }}>
-            Gate palette — seleziona poi clicca su un filo
+            Gate palette - select, then click a wire
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             {Object.keys(GATES).map(type => (
@@ -887,7 +1039,7 @@ export default function CircuitBuilderPage() {
             fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)',
             textTransform: 'uppercase', marginBottom: 18,
           }}>
-            Circuito — {NUM_QUBITS} qubit · {MAX_STEPS} step
+            Circuit - {NUM_QUBITS} qubits · {MAX_STEPS} steps
           </div>
 
           {/* step indices */}
@@ -967,64 +1119,41 @@ export default function CircuitBuilderPage() {
                 {SHOT_PRESETS.map((preset) => {
                   const isActive = selectedShots === preset
                   return (
-                    <button
+                    <Button
                       key={preset}
                       disabled={runStatus === 'running'}
                       onClick={() => setSelectedShots(preset)}
-                      style={{
-                        background: isActive ? 'rgba(110,231,208,0.12)' : 'transparent',
-                        border: `1px solid ${isActive ? 'rgba(110,231,208,0.45)' : 'rgba(255,255,255,0.15)'}`,
-                        color: isActive ? '#6EE7D0' : 'rgba(255,255,255,0.45)',
-                        fontFamily: "'Space Mono', monospace",
-                        fontSize: 10,
-                        letterSpacing: '0.06em',
-                        padding: '6px 8px',
-                        borderRadius: 6,
-                        cursor: runStatus === 'running' ? 'default' : 'pointer',
-                        minWidth: 46,
-                      }}
+                      variant={isActive ? 'outline-info' : 'outline-secondary'}
+                      style={buildShotPresetStyle(isActive, runStatus === 'running')}
                     >
                       {preset}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
             </div>
 
-            <button
+            <Button
               className="run-btn"
               disabled={!hasGates || runStatus === 'running'}
               onClick={handleRun}
-              style={{
-                background: 'transparent',
-                border: `1.5px solid ${hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.1)'}`,
-                color: hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.2)',
-                fontFamily: "'Space Mono', monospace",
-                fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
-                padding: '14px 20px', borderRadius: 8,
-                cursor: hasGates ? 'pointer' : 'default',
-                textTransform: 'uppercase',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
+              variant="outline-info"
+              style={buildRunButtonStyle(hasGates)}
             >
               {runStatus === 'running' ? (
                 <>
-                  <div style={{
-                    width: 12, height: 12,
-                    border: '2px solid #6EE7D0', borderTopColor: 'transparent',
-                    borderRadius: '50%', animation: 'spin 0.7s linear infinite',
-                  }} />
+                  <Spinner size="sm" animation="border" />
                   Running…
                 </>
-              ) : `▶ Esegui ${selectedShots}×`}
-            </button>
+              ) : `▶ Run ${selectedShots}×`}
+            </Button>
 
             {runStatus === 'done' && (
               <div style={{
                 fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
                 color: '#6EE7D0', textAlign: 'center', animation: 'pulse 2s ease-in-out infinite',
               }}>
-                ✓ completato
+                ✓ completed
               </div>
             )}
             {runStatus === 'error' && (
@@ -1032,7 +1161,7 @@ export default function CircuitBuilderPage() {
                 fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
                 color: '#FCA5A5', textAlign: 'center',
               }}>
-                ✕ errore
+                ✕ error
               </div>
             )}
           </div>
@@ -1050,7 +1179,7 @@ export default function CircuitBuilderPage() {
               fontSize: 10, letterSpacing: '0.15em', color: '#6EE7D0',
               textTransform: 'uppercase', marginBottom: 20,
             }}>
-              Risultati — {lastExecutedShots} shots
+              Results - {lastExecutedShots} shots
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {Object.entries(results)
@@ -1090,7 +1219,7 @@ export default function CircuitBuilderPage() {
               fontSize: 10, letterSpacing: '0.08em',
               color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase',
             }}>
-              Simulazione locale · backend: /api/circuits/run
+              Local simulation - backend: /api/circuits/run
             </div>
           </div>
         )}

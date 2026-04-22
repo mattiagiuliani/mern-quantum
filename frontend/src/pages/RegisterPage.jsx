@@ -1,79 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Alert, Button, Form, Spinner } from 'react-bootstrap'
+import { getApiErrorMessage } from '../api/apiError'
+import { createAuthPageStyles } from './authPage.styles'
 import { useAuth } from '../hooks/useAuth'
 
-const S = {
-  page: {
-    background: '#080C14',
-    minHeight: '100vh',
-    color: '#F1EDE4',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: "'Space Mono', monospace",
-    padding: '24px',
-  },
-  card: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 14,
-    padding: '40px 44px',
-    width: '100%',
-    maxWidth: 400,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 24,
-  },
-  label: {
-    display: 'block',
-    fontSize: 10,
-    letterSpacing: '0.15em',
-    color: 'rgba(255,255,255,0.4)',
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  input: {
-    width: '100%',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 6,
-    padding: '12px 14px',
-    color: '#F1EDE4',
-    fontFamily: "'Space Mono', monospace",
-    fontSize: 13,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
-  btn: {
-    background: 'transparent',
-    border: '1.5px solid #6EE7D0',
-    color: '#6EE7D0',
-    fontFamily: "'Space Mono', monospace",
-    fontSize: 12,
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    padding: '14px',
-    borderRadius: 8,
-    cursor: 'pointer',
-    textTransform: 'uppercase',
-    width: '100%',
-    transition: 'all 0.2s',
-  },
-  error: {
-    fontSize: 12,
-    color: '#FCA5A5',
-    letterSpacing: '0.04em',
-    padding: '10px 14px',
-    background: 'rgba(252,165,165,0.08)',
-    border: '1px solid rgba(252,165,165,0.25)',
-    borderRadius: 6,
-  },
-  link: {
-    color: '#6EE7D0',
-    textDecoration: 'none',
-    fontSize: 11,
-  },
-}
+const S = createAuthPageStyles()
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -98,7 +30,7 @@ export default function RegisterPage() {
       await register(username, email, password)
       navigate('/circuit-builder')
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Registration failed. Please try again.')
+      setError(getApiErrorMessage(err, 'Registration failed. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -115,10 +47,10 @@ export default function RegisterPage() {
           <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Create account</h1>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={S.label}>Username</label>
-            <input
+        <Form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Form.Group>
+            <Form.Label style={S.label}>Username</Form.Label>
+            <Form.Control
               type="text"
               required
               autoComplete="username"
@@ -128,10 +60,10 @@ export default function RegisterPage() {
               onChange={(e) => setUsername(e.target.value)}
               style={S.input}
             />
-          </div>
-          <div>
-            <label style={S.label}>Email</label>
-            <input
+          </Form.Group>
+          <Form.Group>
+            <Form.Label style={S.label}>Email</Form.Label>
+            <Form.Control
               type="email"
               required
               autoComplete="email"
@@ -139,10 +71,10 @@ export default function RegisterPage() {
               onChange={(e) => setEmail(e.target.value)}
               style={S.input}
             />
-          </div>
-          <div>
-            <label style={S.label}>Password</label>
-            <input
+          </Form.Group>
+          <Form.Group>
+            <Form.Label style={S.label}>Password</Form.Label>
+            <Form.Control
               type="password"
               required
               autoComplete="new-password"
@@ -150,22 +82,28 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               style={S.input}
             />
-          </div>
+          </Form.Group>
 
-          {error && <div style={S.error}>{error}</div>}
+          {error && <Alert variant="danger" style={S.error}>{error}</Alert>}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
+            variant="outline-info"
             style={{
               ...S.btn,
               opacity: loading ? 0.5 : 1,
               cursor: loading ? 'default' : 'pointer',
             }}
           >
-            {loading ? 'Creating account...' : 'Create account'}
-          </button>
-        </form>
+            {loading ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Spinner size="sm" animation="border" />
+                Creating account...
+              </span>
+            ) : 'Create account'}
+          </Button>
+        </Form>
 
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
           Already have an account?{' '}
