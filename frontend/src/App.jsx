@@ -7,6 +7,8 @@ const CircuitBuilderPage = lazy(() => import('./pages/CircuitBuilderPage'))
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const ResultsPage = lazy(() => import('./pages/ResultsPage'))
 
 function RouteFallback() {
   return (
@@ -40,6 +42,8 @@ export default function App() {
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/results" element={<ResultsPage />} />
           </Routes>
         </Suspense>
       </AuthProvider>

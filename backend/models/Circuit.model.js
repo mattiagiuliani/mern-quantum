@@ -8,11 +8,12 @@ const gateSchema = new mongoose.Schema({
 }, { _id: false })
 
 const circuitSchema = new mongoose.Schema({
-  owner:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  name:       { type: String, default: 'Unnamed circuit' },
-  qubits:     { type: Number, default: 2 },
-  gates:      { type: [gateSchema], default: [] },
-  lastResult: { type: mongoose.Schema.Types.Mixed, default: null },
+  owner:         { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name:          { type: String, default: 'Unnamed circuit', trim: true, maxlength: 80 },
+  qubits:        { type: Number, default: 2 },
+  gates:         { type: [gateSchema], default: [] },
+  circuitMatrix: { type: mongoose.Schema.Types.Mixed, default: [] },
+  lastResult:    { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true })
 
 export default mongoose.model('Circuit', circuitSchema)

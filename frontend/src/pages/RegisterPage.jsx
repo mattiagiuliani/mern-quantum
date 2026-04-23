@@ -38,7 +38,10 @@ export default function RegisterPage() {
 
   return (
     <div style={S.page}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        .auth-input:focus { border-color: rgba(110,231,208,0.6) !important; outline: none !important; box-shadow: 0 0 0 3px rgba(110,231,208,0.1) !important; }
+      `}</style>
       <div style={S.card}>
         <div>
           <div style={{ fontSize: 10, letterSpacing: '0.2em', color: '#6EE7D0', textTransform: 'uppercase', marginBottom: 8 }}>
@@ -58,6 +61,7 @@ export default function RegisterPage() {
               maxLength={30}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              className="auth-input"
               style={S.input}
             />
           </Form.Group>
@@ -69,6 +73,7 @@ export default function RegisterPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="auth-input"
               style={S.input}
             />
           </Form.Group>
@@ -80,6 +85,7 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="auth-input"
               style={S.input}
             />
           </Form.Group>

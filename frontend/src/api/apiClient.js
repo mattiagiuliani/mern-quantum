@@ -79,6 +79,33 @@ export async function logoutUser() {
   return data
 }
 
+// ─── saved circuits ───────────────────────────────────────────────────────────
+
+export async function saveCircuit(name, circuitMatrix) {
+  const { data } = await api.post('/circuits', { name, circuitMatrix })
+  return data
+}
+
+export async function getMineCircuits() {
+  const { data } = await api.get('/circuits/mine')
+  return data
+}
+
+export async function getCircuitById(id) {
+  const { data } = await api.get(`/circuits/${id}`)
+  return data
+}
+
+export async function updateCircuit(id, payload) {
+  const { data } = await api.put(`/circuits/${id}`, payload)
+  return data
+}
+
+export async function deleteCircuit(id) {
+  const { data } = await api.delete(`/circuits/${id}`)
+  return data
+}
+
 export async function getMe() {
   const { data } = await api.get('/auth/me')
   return data
