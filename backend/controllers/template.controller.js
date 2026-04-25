@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import Template from '../models/Template.model.js'
+import { ok, fail } from '../utils/respond.js'
+import logger from '../utils/logger.js'
 
 function normalizePayload(body = {}) {
   return {
@@ -31,109 +33,97 @@ export const createTemplate = async (req, res) => {
   try {
     const payload = normalizePayload(req.body)
 
-    if (!payload.name) {
-      return res.status(400).json({ success: false, message: 'Template name is required' })
-    }
+    if (!payload.name) return fail(res, 'Template name is required')
 
-    const template = await Template.create({
-      ...payload,
-      author: req.user.id,
-    })
-
-    return res.status(201).json({ success: true, template })
+    const template = await Template.create({ ...payload, author: req.user.id })
+    return ok(res, { template }, 201)
   } catch (err) {
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: err.message })
-    }
-
-    console.error('[createTemplate]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    if (err.name === 'ValidationError') return fail(res, err.message)
+    logger.error({ err }, '[createTemplate]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 export const getMyTemplates = async (req, res) => {
   try {
-    const templates = await Template.find({ author: req.user.id })
-      .sort({ updatedAt: -1 })
-      .lean()
+    const page  = Math.max(1, parseInt(req.query.page)  || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20))
+    const skip  = (page - 1) * limit
 
-    return res.status(200).json({ success: true, templates })
+    const [templates, total] = await Promise.all([
+      Template.find({ author: req.user.id })
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Template.countDocuments({ author: req.user.id }),
+    ])
+
+    return ok(res, { templates, total, page, pages: Math.ceil(total / limit) })
   } catch (err) {
-    console.error('[getMyTemplates]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[getMyTemplates]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 export const getPublicTemplates = async (req, res) => {
   try {
-    const tag = typeof req.query.tag === 'string' ? req.query.tag.trim() : ''
+    const tag   = typeof req.query.tag === 'string' ? req.query.tag.trim() : ''
+    const page  = Math.max(1, parseInt(req.query.page)  || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20))
+    const skip  = (page - 1) * limit
     const filter = { isPublic: true }
+    if (tag) filter.tags = tag
 
-    if (tag) {
-      filter.tags = tag
-    }
+    const [templates, total] = await Promise.all([
+      Template.find(filter)
+        .populate('author', 'username')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Template.countDocuments(filter),
+    ])
 
-    const templates = await Template.find(filter)
-      .populate('author', 'username')
-      .sort({ updatedAt: -1 })
-      .lean()
-
-    return res.status(200).json({ success: true, templates })
+    return ok(res, { templates, total, page, pages: Math.ceil(total / limit) })
   } catch (err) {
-    console.error('[getPublicTemplates]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[getPublicTemplates]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 export const getTemplateById = async (req, res) => {
   try {
-    if (!isValidTemplateId(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid template id' })
-    }
+    if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
 
     const template = await Template.findById(req.params.id)
       .populate('author', 'username')
       .lean()
 
-    if (!template) {
-      return res.status(404).json({ success: false, message: 'Template not found' })
-    }
+    if (!template) return fail(res, 'Template not found', 404)
 
     const requesterId = req.user?.id ?? getRequesterIdFromCookie(req)
     const isOwner = requesterId && String(template.author?._id ?? template.author) === String(requesterId)
 
-    if (!template.isPublic && !isOwner) {
-      return res.status(403).json({ success: false, message: 'Access denied' })
-    }
+    if (!template.isPublic && !isOwner) return fail(res, 'Access denied', 403)
 
-    return res.status(200).json({ success: true, template })
+    return ok(res, { template })
   } catch (err) {
-    console.error('[getTemplateById]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[getTemplateById]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 export const updateTemplate = async (req, res) => {
   try {
-    if (!isValidTemplateId(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid template id' })
-    }
+    if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
 
     const template = await Template.findById(req.params.id)
-
-    if (!template) {
-      return res.status(404).json({ success: false, message: 'Template not found' })
-    }
-
-    if (String(template.author) !== String(req.user.id)) {
-      return res.status(403).json({ success: false, message: 'Only owner can update this template' })
-    }
+    if (!template) return fail(res, 'Template not found', 404)
+    if (String(template.author) !== String(req.user.id)) return fail(res, 'Only owner can update this template', 403)
 
     const payload = normalizePayload(req.body)
-
-    if (!payload.name) {
-      return res.status(400).json({ success: false, message: 'Template name is required' })
-    }
+    if (!payload.name) return fail(res, 'Template name is required')
 
     template.name = payload.name
     template.description = payload.description
@@ -142,39 +132,26 @@ export const updateTemplate = async (req, res) => {
     template.isPublic = payload.isPublic
 
     await template.save()
-
-    return res.status(200).json({ success: true, template })
+    return ok(res, { template })
   } catch (err) {
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ success: false, message: err.message })
-    }
-
-    console.error('[updateTemplate]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    if (err.name === 'ValidationError') return fail(res, err.message)
+    logger.error({ err }, '[updateTemplate]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 export const deleteTemplate = async (req, res) => {
   try {
-    if (!isValidTemplateId(req.params.id)) {
-      return res.status(400).json({ success: false, message: 'Invalid template id' })
-    }
+    if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
 
     const template = await Template.findById(req.params.id)
-
-    if (!template) {
-      return res.status(404).json({ success: false, message: 'Template not found' })
-    }
-
-    if (String(template.author) !== String(req.user.id)) {
-      return res.status(403).json({ success: false, message: 'Only owner can delete this template' })
-    }
+    if (!template) return fail(res, 'Template not found', 404)
+    if (String(template.author) !== String(req.user.id)) return fail(res, 'Only owner can delete this template', 403)
 
     await template.deleteOne()
-
-    return res.status(200).json({ success: true, message: 'Template deleted' })
+    return ok(res, { message: 'Template deleted' })
   } catch (err) {
-    console.error('[deleteTemplate]', err)
-    return res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[deleteTemplate]')
+    return fail(res, 'Internal server error', 500)
   }
 }

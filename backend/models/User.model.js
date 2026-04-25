@@ -22,7 +22,11 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Password required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      minlength: [8, 'Password must be at least 8 characters'],
+      match: [
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      ],
       select: false, // non restituita di default nelle query
     },
   },
@@ -43,7 +47,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 // Metodo istanza: versione sicura dell'utente (senza password)
 userSchema.methods.toSafeObject = function () {
   return {
-    id: this._id,
+    id: this._id.toString(),
     username: this.username,
     email: this.email,
     createdAt: this.createdAt,

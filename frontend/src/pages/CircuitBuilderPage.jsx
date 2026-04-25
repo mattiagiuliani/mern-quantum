@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Button, Modal, Form, Spinner } from 'react-bootstrap'
+import { Button, Spinner } from 'react-bootstrap'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { applyGate as apiApplyGate, saveCircuit as apiSaveCircuit, updateCircuit as apiUpdateCircuit } from '../api/apiClient'
+import { applyGate as apiApplyGate, updateCircuit as apiUpdateCircuit } from '../api/apiClient'
 import { useAuth } from '../hooks/useAuth'
 import {
   SHOT_PRESETS,
@@ -29,6 +29,8 @@ import {
   QasmPreview,
   CircuitSequencePanel,
 } from '../features/feature-b-circuit-builder/feature-b-circuit-builder'
+import { useSaveCircuit } from '../features/feature-b-circuit-builder/useSaveCircuit'
+import { SaveModal } from '../features/feature-b-circuit-builder/components/SaveModal'
 import {
   STEP_BY_STEP_STATUS,
   useFeatureDStepByStep,
@@ -43,6 +45,7 @@ export default function CircuitBuilderPage() {
   const [circuit,        setCircuit]        = useState(emptyCircuit)
   const [gateSequence,   setGateSequence]   = useState([])
   const [selectedGate,   setSelectedGate]   = useState(null)
+  const [cnotPending,    setCnotPending]    = useState(null) // { qubit, step } — ctrl awaiting tgt click
   const [focusedCell,    setFocusedCell]    = useState(null)
   const [selectedOpId,   setSelectedOpId]   = useState(null)
   const [lastAddedOpId,  setLastAddedOpId]  = useState(null)
@@ -83,11 +86,20 @@ export default function CircuitBuilderPage() {
   } = useFeatureDStepByStep()
   const [isAutoPlayEnabled, setIsAutoPlayEnabled] = useState(false)
   const [autoPlayDelay, setAutoPlayDelay] = useState(700)
-  const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
-  const [savedCircuitName, setSavedCircuitName] = useState('')
-  const [savedCircuitId, setSavedCircuitId] = useState(null)
-  const [saveModalOpen, setSaveModalOpen] = useState(false)
-  const [saveNameDraft, setSaveNameDraft] = useState('')
+
+  const {
+    saveStatus,
+    savedCircuitName,
+    setSavedCircuitName,
+    savedCircuitId,
+    setSavedCircuitId,
+    saveModalOpen,
+    saveNameDraft,
+    setSaveNameDraft,
+    openSaveModal,
+    closeSaveModal,
+    handleSaveConfirm,
+  } = useSaveCircuit({ circuit, user, results, stepByStepStatus, liveStateRef })
 
   useEffect(() => { liveStateRef.current = liveState }, [liveState])
   useEffect(() => { circuitRef.current = circuit }, [circuit])
@@ -99,6 +111,7 @@ export default function CircuitBuilderPage() {
     setCircuit(normalizedCircuit)
     setGateSequence(buildGateSequenceFromCircuit(normalizedCircuit))
     setSelectedGate(null)
+    setCnotPending(null)
     setFocusedCell(null)
     setSelectedOpId(null)
     setLastAddedOpId(null)
@@ -154,13 +167,86 @@ export default function CircuitBuilderPage() {
 
   // --- handlers --------------------------------------------------------------
 
-  const handleGateSelect = useCallback((type) =>
-    setSelectedGate(prev => prev === type ? null : type), [])
+  const handleGateSelect = useCallback((type) => {
+    setCnotPending(null)
+    setSelectedGate(prev => prev === type ? null : type)
+  }, [])
 
-  const handleGateDeselect = useCallback(() => setSelectedGate(null), [])
+  const handleGateDeselect = useCallback(() => {
+    setCnotPending(null)
+    setSelectedGate(null)
+  }, [])
 
   const handleCellClick = useCallback(async (qubitIdx, stepIdx) => {
     if (!selectedGate) return
+
+    // ── CNOT: two-click flow ──────────────────────────────────────────────────
+    if (selectedGate === 'CNOT') {
+      if (!cnotPending) {
+        // First click: register this cell as the pending control
+        setCnotPending({ qubit: qubitIdx, step: stepIdx })
+        setFocusedCell({ qubit: qubitIdx, step: stepIdx })
+        return
+      }
+
+      const ctrl = cnotPending
+
+      // Same cell clicked again → no-op, keep waiting for the target
+      if (ctrl.qubit === qubitIdx && ctrl.step === stepIdx) {
+        return
+      }
+
+      // Different cell but same qubit, or different column → reassign ctrl
+      // (user changed their mind about which cell is the control)
+      if (ctrl.qubit === qubitIdx || ctrl.step !== stepIdx) {
+        setCnotPending({ qubit: qubitIdx, step: stepIdx })
+        setFocusedCell({ qubit: qubitIdx, step: stepIdx })
+        return
+      }
+
+      // Second click on a different qubit in the same column: place the pair
+      setCnotPending(null)
+      setIsAutoPlayEnabled(false)
+      setSavedCircuitId(null)
+      resetStepByStep()
+
+      const ctrlCell = { gate: 'CNOT', role: 'ctrl', partner: qubitIdx }
+      const tgtCell  = { gate: 'CNOT', role: 'tgt',  partner: ctrl.qubit }
+
+      setCircuit(prev => {
+        const next = prev.map(row => [...row])
+        next[ctrl.qubit][ctrl.step] = ctrlCell
+        next[qubitIdx][stepIdx]     = tgtCell
+        return next
+      })
+
+      const opId = `${Date.now()}-${Math.random().toString(16).slice(2)}-cnot-${ctrl.qubit}-${qubitIdx}-${ctrl.step}`
+      setGateSequence(prev => [
+        ...prev,
+        { id: opId, gate: 'CNOT', qubit: ctrl.qubit, targetQubit: qubitIdx, step: ctrl.step },
+      ])
+      setLastAddedOpId(opId)
+      setSelectedOpId(opId)
+      setFocusedCell({ qubit: ctrl.qubit, step: ctrl.step })
+      pushUndo({ qubitIdx: ctrl.qubit, stepIdx: ctrl.step, gate: 'CNOT', partnerQubit: qubitIdx, opId })
+
+      const ctrlKey = `${ctrl.qubit}-${ctrl.step}`
+      const tgtKey  = `${qubitIdx}-${stepIdx}`
+      setAnimatingCells(prev => new Set(prev).add(ctrlKey).add(tgtKey))
+      setTimeout(() => setAnimatingCells(prev => {
+        const s = new Set(prev); s.delete(ctrlKey); s.delete(tgtKey); return s
+      }), 400)
+
+      try {
+        const { qubitStates } = await apiApplyGate(liveStateRef.current, 'CNOT', ctrl.qubit, qubitIdx)
+        setLiveState(qubitStates)
+      } catch (err) {
+        console.error('[applyGate CNOT]', err)
+      }
+      return
+    }
+
+    // ── Single-qubit gates ────────────────────────────────────────────────────
     setIsAutoPlayEnabled(false)
     setSavedCircuitId(null)
     resetStepByStep()
@@ -199,30 +285,43 @@ export default function CircuitBuilderPage() {
     } catch (err) {
       console.error('[applyGate]', err)
     }
-  }, [selectedGate, pushUndo, resetStepByStep])
+  }, [selectedGate, cnotPending, pushUndo, resetStepByStep])
 
   const handleCellClear = useCallback((qubitIdx, stepIdx) => {
     setIsAutoPlayEnabled(false)
     setSavedCircuitId(null)
     resetStepByStep()
-    let removedGate = null
+    let removedCell = null
+    let partnerIdx  = null
 
     setCircuit(prev => {
       const next = prev.map(row => [...row])
-      removedGate = next[qubitIdx][stepIdx]
+      removedCell = next[qubitIdx][stepIdx]
+
+      // If clearing a CNOT cell, also clear its partner
+      if (removedCell && typeof removedCell === 'object' && removedCell.gate === 'CNOT') {
+        partnerIdx = removedCell.partner
+        next[partnerIdx][stepIdx] = null
+      }
+
       next[qubitIdx][stepIdx] = null
       return next
     })
 
-    if (removedGate) {
-      setGateSequence(prev => {
-        const idx = prev
-          .map(op => op.gate === removedGate && op.qubit === qubitIdx && op.step === stepIdx)
-          .lastIndexOf(true)
-        if (idx < 0) return prev
-        return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
-      })
-    }
+    // Remove the matching gate-sequence operation
+    setGateSequence(prev => {
+      if (!removedCell) return prev
+      const isString = typeof removedCell === 'string'
+      const gateKey  = isString ? removedCell : 'CNOT'
+      const ctrlQ    = (typeof removedCell === 'object' && removedCell.role === 'tgt')
+        ? partnerIdx  // op is stored with ctrl qubit
+        : qubitIdx
+      const idx = prev
+        .map(op => op.gate === gateKey && op.qubit === ctrlQ && op.step === stepIdx)
+        .lastIndexOf(true)
+      if (idx < 0) return prev
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
+    })
 
     setFocusedCell({ qubit: qubitIdx, step: stepIdx })
     setSelectedOpId(null)
@@ -247,6 +346,7 @@ export default function CircuitBuilderPage() {
     setIsAutoPlayEnabled(false)
     setSavedCircuitId(null)
     setSavedCircuitName('')
+    setCnotPending(null)
     resetStepByStep()
     resetMultiRun()
   }
@@ -277,7 +377,9 @@ export default function CircuitBuilderPage() {
         const opId = findOperationId(op.gate, op.qubit, op.step)
         if (opId) setSelectedOpId(opId)
 
-        const { qubitStates, measurement } = await apiApplyGate(nextQubitStates, op.gate, op.qubit)
+        const { qubitStates, measurement } = op.gate === 'CNOT'
+          ? await apiApplyGate(nextQubitStates, 'CNOT', op.qubit, op.targetQubit)
+          : await apiApplyGate(nextQubitStates, op.gate, op.qubit)
         nextQubitStates = qubitStates
         setLiveState(nextQubitStates)
 
@@ -355,44 +457,6 @@ export default function CircuitBuilderPage() {
     await runCircuitWithSelectedShots(circuit)
   }
 
-  // persist lastResult to backend after full run
-  useEffect(() => {
-    if (!results || !savedCircuitId) return
-    apiUpdateCircuit(savedCircuitId, { lastResult: results }).catch(() => {})
-  }, [results, savedCircuitId])
-
-  // persist lastResult to backend after guided run completes
-  useEffect(() => {
-    if (stepByStepStatus !== STEP_BY_STEP_STATUS.COMPLETED || !savedCircuitId) return
-    apiUpdateCircuit(savedCircuitId, { lastResult: liveStateRef.current }).catch(() => {})
-  }, [stepByStepStatus, savedCircuitId])
-
-  const handleSaveCircuit = useCallback(() => {
-    if (!user) { navigate('/login'); return }
-    setSaveNameDraft(savedCircuitName || 'My Circuit')
-    setSaveModalOpen(true)
-  }, [navigate, savedCircuitName, user])
-
-  const handleSaveConfirm = useCallback(async () => {
-    setSaveModalOpen(false)
-    setSaveStatus('saving')
-    try {
-      const trimmedName = saveNameDraft.trim() || 'My Circuit'
-      if (savedCircuitId) {
-        await apiUpdateCircuit(savedCircuitId, { name: trimmedName, circuitMatrix: circuit })
-      } else {
-        const data = await apiSaveCircuit(trimmedName, circuit)
-        setSavedCircuitId(data.circuit._id)
-      }
-      setSavedCircuitName(trimmedName)
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 2000)
-    } catch {
-      setSaveStatus('error')
-      setTimeout(() => setSaveStatus('idle'), 3000)
-    }
-  }, [circuit, saveNameDraft, savedCircuitId])
-
   const openTemplatesLibrary = () => {
     navigate('/templates', {
       state: { circuitDraft: circuit.map((row) => [...row]) },
@@ -409,7 +473,12 @@ export default function CircuitBuilderPage() {
 
   // --- derived ---------------------------------------------------------------
 
-  const totalGates = circuit.flat().filter(Boolean).length
+  // Count CNOT ctrl cells as 1 gate each; skip tgt cells (they are part of the same gate)
+  const totalGates = circuit.flat().filter(c => {
+    if (!c) return false
+    if (typeof c === 'object') return c.gate === 'CNOT' && c.role === 'ctrl'
+    return true
+  }).length
   const hasGates   = totalGates > 0
   const isGuidedMidSession = stepByStepStatus === STEP_BY_STEP_STATUS.READY || stepByStepStatus === STEP_BY_STEP_STATUS.RUNNING
   const isGuidedBusy = isGuidedMidSession || isAutoPlayEnabled
@@ -425,7 +494,7 @@ export default function CircuitBuilderPage() {
         minHeight: '100vh',
         color: '#F1EDE4',
         fontFamily: "'Space Mono', monospace",
-        padding: '32px 24px',
+        padding: '80px 24px 32px',
       }}>
         <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -441,13 +510,6 @@ export default function CircuitBuilderPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Button
-                onClick={() => navigate('/')}
-                variant="outline-secondary"
-                style={{ ...BUILDER_BUTTON_STYLE_TOKENS.headerBase, color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
-              >
-                Home
-              </Button>
               {hasGates && (
                 <div style={{
                   fontSize: 10, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)',
@@ -473,18 +535,9 @@ export default function CircuitBuilderPage() {
               >
                 Templates
               </Button>
-              {user && (
-                <Button
-                  onClick={() => navigate('/dashboard')}
-                  variant="outline-secondary"
-                  style={{ ...BUILDER_BUTTON_STYLE_TOKENS.headerBase, color: 'rgba(167,139,250,0.8)', borderColor: 'rgba(167,139,250,0.3)' }}
-                >
-                  My Circuits
-                </Button>
-              )}
               {hasGates && (
                 <Button
-                  onClick={handleSaveCircuit}
+                  onClick={openSaveModal}
                   disabled={saveStatus === 'saving'}
                   variant="outline-success"
                   style={{
@@ -609,6 +662,7 @@ export default function CircuitBuilderPage() {
                       animatingCells={animatingCells}
                       liveQ={liveState[qi]}
                       focusedCell={focusedCell}
+                      cnotPending={cnotPending}
                     />
                   ))}
                 </div>
@@ -821,65 +875,13 @@ export default function CircuitBuilderPage() {
       </div>
 
       {/* ── Save Circuit Modal ── */}
-      <Modal
-        show={saveModalOpen}
-        onHide={() => setSaveModalOpen(false)}
-        centered
-        contentClassName="bg-dark border border-secondary"
-      >
-        <Modal.Header
-          closeButton
-          style={{ borderColor: 'rgba(255,255,255,0.08)', padding: '16px 24px' }}
-        >
-          <Modal.Title style={{
-            fontFamily: "'Space Mono', monospace",
-            fontSize: 14, fontWeight: 700, color: '#F1EDE4', letterSpacing: '-0.01em',
-          }}>
-            Save circuit
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '20px 24px' }}>
-          <Form.Label style={{
-            fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.4)',
-            textTransform: 'uppercase', display: 'block', marginBottom: 8,
-            fontFamily: "'Space Mono', monospace",
-          }}>
-            Circuit name
-          </Form.Label>
-          <Form.Control
-            autoFocus
-            value={saveNameDraft}
-            onChange={(e) => setSaveNameDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveConfirm() }}
-            maxLength={80}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#F1EDE4',
-              fontFamily: "'Space Mono', monospace",
-              fontSize: 13,
-              borderRadius: 6,
-            }}
-          />
-        </Modal.Body>
-        <Modal.Footer style={{ borderColor: 'rgba(255,255,255,0.08)', padding: '14px 24px', gap: 8 }}>
-          <Button
-            variant="outline-secondary"
-            onClick={() => setSaveModalOpen(false)}
-            style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="outline-info"
-            onClick={handleSaveConfirm}
-            disabled={!saveNameDraft.trim()}
-            style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.4)' }}
-          >
-            Save
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <SaveModal
+        open={saveModalOpen}
+        draft={saveNameDraft}
+        onDraftChange={setSaveNameDraft}
+        onClose={closeSaveModal}
+        onConfirm={handleSaveConfirm}
+      />
     </>
   )
 }

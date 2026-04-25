@@ -1,3 +1,7 @@
+import { TOKENS } from '../../styles/tokens'
+
+const { colors: C, fonts: F, radius: R } = TOKENS
+
 export const NUM_QUBITS = 3
 export const MAX_STEPS  = 8
 
@@ -6,15 +10,15 @@ export const GATES = {
     label: 'H',
     name: 'Hadamard',
     desc: 'Puts the qubit in a mixed state where 0 and 1 are both possible.',
-    color: '#6EE7D0',
-    bg: 'rgba(110,231,208,0.12)',
+    color: C.teal,
+    bg: C.tealSubtle,
     border: 'rgba(110,231,208,0.5)',
   },
   X: {
     label: 'X',
     name: 'Pauli-X',
     desc: 'Flips the qubit value: |0\u27e9 becomes |1\u27e9 and vice versa.',
-    color: '#FCA5A5',
+    color: C.red,
     bg: 'rgba(252,165,165,0.12)',
     border: 'rgba(252,165,165,0.5)',
   },
@@ -22,49 +26,57 @@ export const GATES = {
     label: '\u2295',
     name: 'Measure',
     desc: 'Reads the qubit and gives a final result: 0 or 1.',
-    color: '#FCD34D',
+    color: C.yellow,
     bg: 'rgba(252,211,77,0.12)',
     border: 'rgba(252,211,77,0.5)',
+  },
+  CNOT: {
+    label: 'CX',
+    name: 'CNOT',
+    desc: 'Flips the target qubit if the control is |1\u27e9. Click ctrl first, then target in the same column.',
+    color: C.purple,
+    bg: 'rgba(167,139,250,0.12)',
+    border: 'rgba(167,139,250,0.5)',
   },
 }
 
 export const BUILDER_BUTTON_STYLE_TOKENS = {
   headerBase: {
     background: 'transparent',
-    fontFamily: "'Space Mono', monospace",
+    fontFamily: F.mono,
     fontSize: 11,
     letterSpacing: '0.08em',
-    borderRadius: 6,
+    borderRadius: R.md,
     cursor: 'pointer',
     transition: 'all 0.2s',
     textTransform: 'uppercase',
   },
   headerTemplates: {
-    border: '1px solid rgba(110,231,208,0.24)',
+    border: `1px solid rgba(110,231,208,0.24)`,
     color: 'rgba(110,231,208,0.85)',
     padding: '8px 12px',
   },
   headerReset: {
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'rgba(255,255,255,0.35)',
+    border: `1px solid rgba(255,255,255,0.1)`,
+    color: C.textMuted,
     padding: '8px 16px',
   },
   shotsPresetBase: {
-    fontFamily: "'Space Mono', monospace",
+    fontFamily: F.mono,
     fontSize: 10,
     letterSpacing: '0.06em',
     padding: '6px 8px',
-    borderRadius: 6,
+    borderRadius: R.md,
     minWidth: 46,
   },
   runButtonBase: {
     background: 'transparent',
-    fontFamily: "'Space Mono', monospace",
+    fontFamily: F.mono,
     fontSize: 12,
     fontWeight: 700,
     letterSpacing: '0.08em',
     padding: '14px 20px',
-    borderRadius: 8,
+    borderRadius: R.md,
     textTransform: 'uppercase',
     display: 'flex',
     alignItems: 'center',
@@ -75,15 +87,16 @@ export const BUILDER_BUTTON_STYLE_TOKENS = {
 
 export const buildShotPresetStyle = (isActive, isRunning) => ({
   ...BUILDER_BUTTON_STYLE_TOKENS.shotsPresetBase,
-  background: isActive ? 'rgba(110,231,208,0.12)' : 'transparent',
+  background: isActive ? C.tealSubtle : 'transparent',
   border: `1px solid ${isActive ? 'rgba(110,231,208,0.45)' : 'rgba(255,255,255,0.15)'}`,
-  color: isActive ? '#6EE7D0' : 'rgba(255,255,255,0.45)',
+  color: isActive ? C.teal : C.textMuted,
   cursor: isRunning ? 'default' : 'pointer',
 })
 
 export const buildRunButtonStyle = (hasGates) => ({
   ...BUILDER_BUTTON_STYLE_TOKENS.runButtonBase,
-  border: `1.5px solid ${hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.1)'}`,
-  color: hasGates ? '#6EE7D0' : 'rgba(255,255,255,0.2)',
+  border: `1.5px solid ${hasGates ? C.teal : 'rgba(255,255,255,0.1)'}`,
+  color: hasGates ? C.teal : C.textFaint,
   cursor: hasGates ? 'pointer' : 'default',
 })
+

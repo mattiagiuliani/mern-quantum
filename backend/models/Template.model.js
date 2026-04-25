@@ -1,12 +1,16 @@
 import mongoose from 'mongoose'
 
 const ALLOWED_GATES = new Set(['H', 'X', 'M'])
+const MAX_QUBITS    = 10
+const MAX_STEPS     = 16
 
 function isValidCircuitMatrix(circuit) {
   if (!Array.isArray(circuit) || circuit.length === 0) return false
+  if (circuit.length > MAX_QUBITS) return false
   if (!Array.isArray(circuit[0]) || circuit[0].length === 0) return false
 
   const stepCount = circuit[0].length
+  if (stepCount > MAX_STEPS) return false
 
   for (const row of circuit) {
     if (!Array.isArray(row) || row.length !== stepCount) return false

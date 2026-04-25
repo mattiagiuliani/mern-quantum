@@ -141,7 +141,7 @@ export default function ResultsPage() {
       background: '#080C14',
       color: '#F1EDE4',
       fontFamily: "'Space Mono', monospace",
-      padding: '32px 24px',
+      padding: '80px 24px 32px',
     }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Lora:wght@400;500&display=swap');`}</style>
       <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -163,14 +163,6 @@ export default function ResultsPage() {
             <Button
               variant="outline-secondary"
               size="sm"
-              onClick={() => navigate('/')}
-              style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.08)' }}
-            >
-              Home
-            </Button>
-            <Button
-              variant="outline-secondary"
-              size="sm"
               onClick={() => navigate(-1)}
               style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.12)' }}
             >
@@ -183,14 +175,6 @@ export default function ResultsPage() {
               style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.35)' }}
             >
               Builder
-            </Button>
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: 'rgba(167,139,250,0.8)', borderColor: 'rgba(167,139,250,0.3)' }}
-            >
-              My Circuits
             </Button>
           </div>
         </div>

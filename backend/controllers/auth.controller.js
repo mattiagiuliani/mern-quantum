@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.model.js'
+import { ok, fail } from '../utils/respond.js'
+import logger from '../utils/logger.js'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -8,9 +10,14 @@ import User from '../models/User.model.js'
  * @param {string} userId
  * @returns {string} token firmato
  */
-const signToken = (userId) =>
+const signAccessToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
+  })
+
+const signRefreshToken = (userId) =>
+  jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET + '_refresh', {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
   })
 
 /**
@@ -20,22 +27,26 @@ const signToken = (userId) =>
  * @param {object} res
  */
 const sendTokenResponse = (user, statusCode, res) => {
-  const token = signToken(user._id)
+  const accessToken  = signAccessToken(user._id)
+  const refreshToken = signRefreshToken(user._id)
 
-  const cookieOptions = {
-    httpOnly: true,                         // non accessibile da JS lato client
-    secure: process.env.NODE_ENV === 'production', // HTTPS solo in prod
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,       // 7 giorni in ms
-  }
+  const secure = process.env.NODE_ENV === 'production'
 
   res
     .status(statusCode)
-    .cookie('token', token, cookieOptions)
-    .json({
-      success: true,
-      user: user.toSafeObject(),
+    .cookie('token', accessToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 min
     })
+    .cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    })
+    .json({ success: true, user: user.toSafeObject() })
 }
 
 // ─── controller ─────────────────────────────────────────────────────────────
@@ -48,44 +59,25 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body
 
-    // Validazione campi obbligatori
     if (!username || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username, email and password are required',
-      })
+      return fail(res, 'Username, email and password are required')
     }
 
-    // Controlla se l'email è già registrata
     const existingEmail = await User.findOne({ email: email.toLowerCase() })
-    if (existingEmail) {
-      return res.status(409).json({
-        success: false,
-        message: 'Email already in use',
-      })
-    }
+    if (existingEmail) return fail(res, 'Email already in use', 409)
 
-    // Controlla se lo username è già preso
     const existingUsername = await User.findOne({ username })
-    if (existingUsername) {
-      return res.status(409).json({
-        success: false,
-        message: 'Username already in use',
-      })
-    }
+    if (existingUsername) return fail(res, 'Username already in use', 409)
 
-    // Crea utente — il pre-save hook di Mongoose fa l'hash della password
     const user = await User.create({ username, email, password })
-
     sendTokenResponse(user, 201, res)
   } catch (err) {
-    // Gestisce errori di validazione Mongoose (es. email malformata, pw troppo corta)
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message)
-      return res.status(400).json({ success: false, message: messages.join('. ') })
+      return fail(res, messages.join('. '))
     }
-    console.error('[register]', err)
-    res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[register]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
@@ -98,52 +90,64 @@ export const login = async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      })
+      return fail(res, 'Email and password are required')
     }
 
-    // .select('+password') perché il campo ha select:false nel modello
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password')
-
-    if (!user) {
-      // Messaggio generico: non rivela se l'email esiste o no (sicurezza)
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      })
-    }
+    if (!user) return fail(res, 'Invalid credentials', 401)
 
     const isMatch = await user.comparePassword(password)
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      })
-    }
+    if (!isMatch) return fail(res, 'Invalid credentials', 401)
 
     sendTokenResponse(user, 200, res)
   } catch (err) {
-    console.error('[login]', err)
-    res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[login]')
+    return fail(res, 'Internal server error', 500)
   }
 }
 
 /**
  * POST /api/auth/logout
- * Pulisce il cookie del token.
- * Non servono dati nel body — il middleware JWT ha già verificato il token.
+ * Clears both access and refresh token cookies.
  */
 export const logout = async (req, res) => {
+  const secure = process.env.NODE_ENV === 'production'
   res
     .status(200)
-    .clearCookie('token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    })
+    .clearCookie('token', { httpOnly: true, secure, sameSite: 'strict' })
+    .clearCookie('refreshToken', { httpOnly: true, secure, sameSite: 'strict' })
     .json({ success: true, message: 'Logout successful' })
+}
+
+/**
+ * POST /api/auth/refresh
+ * Issues a new access token using the refreshToken cookie.
+ */
+export const refresh = async (req, res) => {
+  const token = req.cookies?.refreshToken
+  if (!token) return fail(res, 'No refresh token', 401)
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET + '_refresh',
+    )
+    const user = await User.findById(decoded.id)
+    if (!user) return fail(res, 'User not found', 401)
+
+    const accessToken = signAccessToken(user._id)
+    res
+      .status(200)
+      .cookie('token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000,
+      })
+      .json({ success: true })
+  } catch {
+    return fail(res, 'Invalid or expired refresh token', 401)
+  }
 }
 
 /**
@@ -152,19 +156,11 @@ export const logout = async (req, res) => {
  */
 export const getMe = async (req, res) => {
   try {
-    // req.user viene iniettato dal middleware auth dopo la verifica JWT
     const user = await User.findById(req.user.id)
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      })
-    }
-
-    res.status(200).json({ success: true, user: user.toSafeObject() })
+    if (!user) return fail(res, 'User not found', 404)
+    return ok(res, { user: user.toSafeObject() })
   } catch (err) {
-    console.error('[getMe]', err)
-    res.status(500).json({ success: false, message: 'Internal server error' })
+    logger.error({ err }, '[getMe]')
+    return fail(res, 'Internal server error', 500)
   }
 }

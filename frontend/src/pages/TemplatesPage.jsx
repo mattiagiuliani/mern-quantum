@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, Form } from 'react-bootstrap'
 import { useAuth } from '../hooks/useAuth'
@@ -22,9 +22,17 @@ import { cloneCircuit, isCircuitEmpty } from '../features/feature-c-templates/te
 export default function TemplatesPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
-  const [activeTab, setActiveTab] = useState(user ? 'mine' : 'public')
+  const [activeTab, setActiveTab] = useState('public')
+  const tabInitialized = useRef(false)
+
+  useEffect(() => {
+    if (!authLoading && !tabInitialized.current) {
+      tabInitialized.current = true
+      if (user) setActiveTab('mine')
+    }
+  }, [authLoading, user])
   const [tagFilter, setTagFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editSeed, setEditSeed] = useState(null)
@@ -124,7 +132,7 @@ export default function TemplatesPage() {
           background: radial-gradient(circle at top right, rgba(110,231,208,0.07), transparent 35%), #080C14;
           color: #F1EDE4;
           font-family: 'Space Mono', monospace;
-          padding: clamp(16px, 3vw, 30px) clamp(14px, 3.2vw, 24px);
+          padding: 80px clamp(14px, 3.2vw, 24px) clamp(16px, 3vw, 30px);
         }
 
         .templates-page-inner {

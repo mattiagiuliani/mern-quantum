@@ -1,5 +1,20 @@
 import { STEP_BY_STEP_MODES } from './stepByStep.constants'
 
+/** Extract a gate operation descriptor from a circuit cell, or null if the cell should be skipped. */
+function cellToOp(cell, qubit, step) {
+  if (!cell) return null
+
+  if (typeof cell === 'object' && cell.gate === 'CNOT') {
+    // Emit one operation from ctrl; skip tgt (it will be processed together with ctrl)
+    if (cell.role === 'ctrl') {
+      return { gate: 'CNOT', qubit, targetQubit: cell.partner, step }
+    }
+    return null // tgt skipped
+  }
+
+  return { gate: cell, qubit, step }
+}
+
 export function buildGateQueue(circuit) {
   const queue = []
   const stepCount = circuit?.[0]?.length ?? 0
@@ -7,13 +22,13 @@ export function buildGateQueue(circuit) {
 
   for (let step = 0; step < stepCount; step++) {
     for (let qubit = 0; qubit < qubitCount; qubit++) {
-      const gate = circuit?.[qubit]?.[step]
-      if (!gate) continue
+      const op = cellToOp(circuit?.[qubit]?.[step], qubit, step)
+      if (!op) continue
 
       queue.push({
         mode: STEP_BY_STEP_MODES.GATE_BY_GATE,
         step,
-        operations: [{ gate, qubit, step }],
+        operations: [op],
       })
     }
   }
@@ -30,9 +45,8 @@ export function buildTimeStepQueue(circuit) {
     const operations = []
 
     for (let qubit = 0; qubit < qubitCount; qubit++) {
-      const gate = circuit?.[qubit]?.[step]
-      if (!gate) continue
-      operations.push({ gate, qubit, step })
+      const op = cellToOp(circuit?.[qubit]?.[step], qubit, step)
+      if (op) operations.push(op)
     }
 
     if (operations.length > 0) {
@@ -57,9 +71,12 @@ export function describeQueueUnit(unit) {
   if (!unit) return 'No current step'
 
   if (unit.mode === STEP_BY_STEP_MODES.TIME_STEP) {
-    return `t${unit.step} · ${unit.operations.length} gate${unit.operations.length === 1 ? '' : 's'}`
+    return `t${unit.step} \u00b7 ${unit.operations.length} gate${unit.operations.length === 1 ? '' : 's'}`
   }
 
   const op = unit.operations[0]
-  return `t${op.step} · ${op.gate} on q[${op.qubit}]`
+  if (op.gate === 'CNOT') {
+    return `t${op.step} \u00b7 CNOT q[${op.qubit}]\u2192q[${op.targetQubit}]`
+  }
+  return `t${op.step} \u00b7 ${op.gate} on q[${op.qubit}]`
 }

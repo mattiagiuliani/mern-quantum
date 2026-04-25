@@ -236,7 +236,7 @@ function ConceptCard({ concept, index }) {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [visibleSections, setVisibleSections] = useState(new Set())
   const sectionRefs = useRef({})
 
@@ -362,55 +362,6 @@ export default function HomePage() {
       `}</style>
 
       <div style={{ fontFamily: "'Lora', Georgia, serif", background: '#080C14', minHeight: '100vh' }}>
-
-        {/* ── AUTH NAV ── */}
-        <nav style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '10px 24px',
-          background: 'rgba(8,12,20,0.85)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <span style={{
-            fontFamily: "'Space Mono', monospace",
-            fontSize: 11, letterSpacing: '0.2em', color: '#6EE7D0', textTransform: 'uppercase',
-          }}>
-            mern-quantum
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {user ? (
-              <>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.05em' }}>
-                  {user.username}
-                </span>
-                <Button size="sm" variant="outline-secondary"
-                  onClick={() => navigate('/dashboard')}
-                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'rgba(167,139,250,0.85)', borderColor: 'rgba(167,139,250,0.3)', padding: '3px 10px' }}>
-                  My Circuits
-                </Button>
-                <Button size="sm" variant="outline-secondary"
-                  onClick={async () => { await logout(); }}
-                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)', padding: '3px 10px' }}>
-                  Sign out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="outline-secondary"
-                  onClick={() => navigate('/login')}
-                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.15)', padding: '3px 10px' }}>
-                  Sign in
-                </Button>
-                <Button size="sm" variant="outline-info"
-                  onClick={() => navigate('/register')}
-                  style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.4)', padding: '3px 10px' }}>
-                  Register
-                </Button>
-              </>
-            )}
-          </div>
-        </nav>
 
         {/* ── HERO ── */}
         <section style={{

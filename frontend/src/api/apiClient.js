@@ -5,6 +5,51 @@ const api = axios.create({
   withCredentials: true,
 })
 
+// Track if a refresh is already in flight to avoid infinite retry loops
+let isRefreshing = false
+let pendingQueue = []
+
+function processQueue(error) {
+  pendingQueue.forEach(({ resolve, reject }) => error ? reject(error) : resolve())
+  pendingQueue = []
+}
+
+// On 401: try the refresh endpoint once, then retry. On failure, redirect to /login.
+api.interceptors.response.use(null, async (error) => {
+  const status  = error.response?.status
+  const url     = error.config?.url ?? ''
+  const isRetry = error.config?._retry
+
+  // Don't intercept auth probes or already-retried requests
+  if (status !== 401 || url.includes('/auth/me') || url.includes('/auth/refresh') || isRetry) {
+    return Promise.reject(error)
+  }
+
+  if (isRefreshing) {
+    // Queue this request until the in-flight refresh resolves
+    return new Promise((resolve, reject) => {
+      pendingQueue.push({ resolve, reject })
+    }).then(() => {
+      error.config._retry = true
+      return api(error.config)
+    })
+  }
+
+  isRefreshing = true
+  try {
+    await api.post('/auth/refresh')
+    processQueue(null)
+    error.config._retry = true
+    return api(error.config)
+  } catch (refreshError) {
+    processQueue(refreshError)
+    window.location.href = '/login'
+    return Promise.reject(refreshError)
+  } finally {
+    isRefreshing = false
+  }
+})
+
 /**
  * POST /api/circuits/run
  * @param {string[][]} circuit  circuit[qubit][step]
@@ -18,13 +63,25 @@ export async function runCircuit(circuit, shots = 1024) {
 
 /**
  * POST /api/circuits/applyGate  — live single-gate update
- * @param {{ value: 0|1, superposition: boolean }[]} qubitStates
- * @param {'H'|'X'|'M'} gate
- * @param {number} qubitIndex
+ *
+ * For single-qubit gates (H, X, M):
+ *   @param {{ value: 0|1, superposition: boolean }[]} qubitStates
+ *   @param {'H'|'X'|'M'} gate
+ *   @param {number} qubitIndex
+ *
+ * For CNOT:
+ *   @param {{ value: 0|1, superposition: boolean }[]} qubitStates
+ *   @param {'CNOT'} gate
+ *   @param {number} controlIndex
+ *   @param {number} targetIndex
+ *
  * @returns {Promise<{ qubitStates: { value: 0|1, superposition: boolean }[], measurement: 0|1|null }>}
  */
-export async function applyGate(qubitStates, gate, qubitIndex) {
-  const { data } = await api.post('/circuits/applyGate', { qubitStates, gate, qubitIndex })
+export async function applyGate(qubitStates, gate, qubitIndexOrControl, targetIndex) {
+  const body = gate === 'CNOT'
+    ? { qubitStates, gate, controlIndex: qubitIndexOrControl, targetIndex }
+    : { qubitStates, gate, qubitIndex: qubitIndexOrControl }
+  const { data } = await api.post('/circuits/applyGate', body)
   return data
 }
 
@@ -86,8 +143,8 @@ export async function saveCircuit(name, circuitMatrix) {
   return data
 }
 
-export async function getMineCircuits() {
-  const { data } = await api.get('/circuits/mine')
+export async function getMineCircuits(page = 1, limit = 20) {
+  const { data } = await api.get('/circuits/mine', { params: { page, limit } })
   return data
 }
 

@@ -1,7 +1,11 @@
+import { TOKENS } from '../../styles/tokens'
+
+const { colors: C } = TOKENS
+
 export const BUILDER_PAGE_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Lora&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body, #root { background: #080C14; min-height: 100vh; }
+  body, #root { background: ${C.bg}; min-height: 100vh; }
 
   @keyframes gateInsert {
     0%   { opacity: 0; transform: scale(0.45) translateY(-10px); }

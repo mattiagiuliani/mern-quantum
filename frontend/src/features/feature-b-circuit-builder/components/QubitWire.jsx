@@ -1,7 +1,21 @@
 import { qubitDisplay } from '../circuitBuilder.utils'
 import { Cell } from './Cell'
 
-export function QubitWire({ qubitIndex, steps, selectedGate, onCellClick, onCellClear, animatingCells, liveQ, focusedCell }) {
+/**
+ * @param {object}  props
+ * @param {number}  props.qubitIndex
+ * @param {Array}   props.steps          circuit row (cells for each time step)
+ * @param {string|null} props.selectedGate
+ * @param {Function} props.onCellClick
+ * @param {Function} props.onCellClear
+ * @param {Set}     props.animatingCells
+ * @param {object}  props.liveQ          { value, superposition }
+ * @param {object|null} props.focusedCell  { qubit, step }
+ * @param {{qubit:number,step:number}|null} props.cnotPending
+ *   When the user has selected CNOT and clicked a ctrl cell but not yet a tgt,
+ *   this holds the pending ctrl location so the cell can display the pending glow.
+ */
+export function QubitWire({ qubitIndex, steps, selectedGate, onCellClick, onCellClear, animatingCells, liveQ, focusedCell, cnotPending }) {
   const { label: stateLabel, color: stateColor } = qubitDisplay(liveQ)
 
   return (
@@ -45,19 +59,27 @@ export function QubitWire({ qubitIndex, steps, selectedGate, onCellClick, onCell
           transition: 'background 0.4s ease, height 0.3s ease, box-shadow 0.4s ease',
         }} />
         <div style={{ display: 'flex', gap: 6, position: 'relative', zIndex: 1 }}>
-          {steps.map((gate, stepIdx) => (
-            <Cell
-              key={stepIdx}
-              gate={gate}
-              selectedGate={selectedGate}
-              isNew={animatingCells.has(`${qubitIndex}-${stepIdx}`)}
-              isFocused={focusedCell?.qubit === qubitIndex && focusedCell?.step === stepIdx}
-              onClick={() => gate
-                ? onCellClear(qubitIndex, stepIdx)
-                : onCellClick(qubitIndex, stepIdx)
-              }
-            />
-          ))}
+          {steps.map((gate, stepIdx) => {
+            const isPending = !!(
+              cnotPending &&
+              cnotPending.qubit === qubitIndex &&
+              cnotPending.step === stepIdx
+            )
+            return (
+              <Cell
+                key={stepIdx}
+                gate={gate}
+                selectedGate={selectedGate}
+                isNew={animatingCells.has(`${qubitIndex}-${stepIdx}`)}
+                isFocused={focusedCell?.qubit === qubitIndex && focusedCell?.step === stepIdx}
+                isPending={isPending}
+                onClick={() => gate
+                  ? onCellClear(qubitIndex, stepIdx)
+                  : onCellClick(qubitIndex, stepIdx)
+                }
+              />
+            )
+          })}
         </div>
       </div>
     </div>

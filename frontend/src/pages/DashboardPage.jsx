@@ -3,43 +3,46 @@ import { Button, Spinner } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 import { getMineCircuits, deleteCircuit } from '../api/apiClient'
 import { useAuth } from '../hooks/useAuth'
+import { TOKENS } from '../styles/tokens'
+
+const { colors: C, fonts: F, radius: R } = TOKENS
 
 const S = {
   page: {
     minHeight: '100vh',
-    background: '#080C14',
-    color: '#F1EDE4',
-    fontFamily: "'Space Mono', monospace",
-    padding: '32px 24px',
+    background: C.bg,
+    color: C.textPrimary,
+    fontFamily: F.mono,
+    padding: '80px 24px 32px',
   },
   inner: { maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 },
-  eyebrow: { fontSize: 10, letterSpacing: '0.2em', color: '#6EE7D0', textTransform: 'uppercase', marginBottom: 6 },
-  title: { fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: '#F1EDE4', letterSpacing: '-0.02em', margin: 0 },
+  eyebrow: { fontSize: 10, letterSpacing: '0.2em', color: C.teal, textTransform: 'uppercase', marginBottom: 6 },
+  title: { fontFamily: F.mono, fontSize: 22, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', margin: 0 },
   card: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 14,
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: R.lg,
     padding: '18px 22px',
     display: 'flex',
     alignItems: 'center',
     gap: 16,
     flexWrap: 'wrap',
   },
-  cardName: { flex: 1, minWidth: 160, fontSize: 14, fontWeight: 700, color: '#F1EDE4', letterSpacing: '-0.01em' },
+  cardName: { flex: 1, minWidth: 160, fontSize: 14, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.01em' },
   cardMeta: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4 },
   badge: {
     fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
-    padding: '4px 10px', borderRadius: 6,
-    border: '1px solid rgba(110,231,208,0.25)',
+    padding: '4px 10px', borderRadius: R.md,
+    border: `1px solid ${C.tealFaint}`,
     color: 'rgba(110,231,208,0.8)',
   },
   empty: {
     textAlign: 'center', padding: '60px 24px',
     color: 'rgba(255,255,255,0.3)', fontSize: 13,
-    border: '1px dashed rgba(255,255,255,0.08)', borderRadius: 14,
+    border: '1px dashed rgba(255,255,255,0.08)', borderRadius: R.lg,
   },
-  btnBase: { fontFamily: "'Space Mono', monospace", fontSize: 11, letterSpacing: '0.06em', border: 'none', padding: '6px 14px', borderRadius: 6 },
+  btnBase: { fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', border: 'none', padding: '6px 14px', borderRadius: R.md },
 }
 
 function formatDate(iso) {
@@ -55,6 +58,10 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const PAGE_LIMIT = 20
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,12 +69,14 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, navigate])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p = 1) => {
     setLoading(true)
     setError('')
     try {
-      const data = await getMineCircuits()
+      const data = await getMineCircuits(p, PAGE_LIMIT)
       setCircuits(data.circuits ?? [])
+      setTotal(data.total ?? 0)
+      setTotalPages(data.pages ?? 1)
     } catch {
       setError('Could not load circuits.')
     } finally {
@@ -76,8 +85,8 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    if (!authLoading && user) load()
-  }, [authLoading, user, load])
+    if (!authLoading && user) load(page)
+  }, [authLoading, user, load, page])
 
   const handleLoad = useCallback((circuit) => {
     navigate('/circuit-builder', { state: { savedCircuitToLoad: circuit } })
@@ -93,7 +102,11 @@ export default function DashboardPage() {
     setDeletingId(id)
     try {
       await deleteCircuit(id)
-      setCircuits(prev => prev.filter(c => c._id !== id))
+      // reload current page; if last item on page > 1, go back one page
+      const newTotal = total - 1
+      const targetPage = circuits.length === 1 && page > 1 ? page - 1 : page
+      setPage(targetPage)
+      if (targetPage === page) load(page)
     } catch {
       setError('Could not delete circuit.')
     } finally {
@@ -121,13 +134,6 @@ export default function DashboardPage() {
             <h1 style={S.title}>Saved Circuits</h1>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button
-              variant="outline-secondary"
-              onClick={() => navigate('/')}
-              style={{ ...S.btnBase, color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.12)' }}
-            >
-              Home
-            </Button>
             <Button
               variant="outline-info"
               onClick={() => navigate('/circuit-builder')}
@@ -224,6 +230,33 @@ export default function DashboardPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {total} circuit{total !== 1 ? 's' : ''} · page {page} / {totalPages}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Button
+                variant="outline-secondary"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                style={{ ...S.btnBase, fontSize: 11, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)' }}
+              >
+                ← Prev
+              </Button>
+              <Button
+                variant="outline-secondary"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                style={{ ...S.btnBase, fontSize: 11, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)' }}
+              >
+                Next →
+              </Button>
+            </div>
           </div>
         )}
 

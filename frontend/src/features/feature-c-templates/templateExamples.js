@@ -1,5 +1,9 @@
 const EMPTY = null
 
+// CNOT helpers — keeps the circuit declarations readable
+const CTRL = (partner) => ({ gate: 'CNOT', role: 'ctrl', partner })
+const TGT  = (partner) => ({ gate: 'CNOT', role: 'tgt',  partner })
+
 export const EXAMPLE_TEMPLATES = [
   {
     id: 'example-superposition',
@@ -15,29 +19,29 @@ export const EXAMPLE_TEMPLATES = [
     ],
   },
   {
-    id: 'example-bell-placeholder',
-    name: 'Bell State (Educational)',
-    description: 'Placeholder demo with current gates set (H, X, M).',
-    tags: ['example', 'entanglement'],
+    id: 'example-bell',
+    name: 'Bell State',
+    description: 'True two-qubit entangled state: H on q[0], CNOT q[0]→q[1], measure both. Always collapses to |00⟩ or |11⟩.',
+    tags: ['entanglement', 'cnot', 'bell'],
     isPublic: true,
     source: 'example',
     circuit: [
-      ['H', EMPTY, 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
-      ['X', EMPTY, 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+      ['H', CTRL(1), 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+      [EMPTY, TGT(0), 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
       [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
     ],
   },
   {
-    id: 'example-ghz-placeholder',
-    name: 'GHZ (Educational)',
-    description: 'Three-qubit educational placeholder with the available gates.',
-    tags: ['example', '3-qubits'],
+    id: 'example-ghz',
+    name: 'GHZ State',
+    description: 'Three-qubit Greenberger–Horne–Zeilinger state: H on q[0], CNOT q[0]→q[1], CNOT q[0]→q[2]. Always |000⟩ or |111⟩.',
+    tags: ['entanglement', 'cnot', '3-qubits', 'ghz'],
     isPublic: true,
     source: 'example',
     circuit: [
-      ['H', EMPTY, 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
-      ['X', EMPTY, 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
-      ['X', EMPTY, 'M', EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+      ['H', CTRL(1), CTRL(2), 'M', EMPTY, EMPTY, EMPTY, EMPTY],
+      [EMPTY, TGT(0), EMPTY,  'M', EMPTY, EMPTY, EMPTY, EMPTY],
+      [EMPTY, EMPTY,  TGT(0), 'M', EMPTY, EMPTY, EMPTY, EMPTY],
     ],
   },
 ]
