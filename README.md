@@ -1,122 +1,93 @@
 # MERN Quantum
 
-MERN Quantum is a full-stack web application for simulating quantum circuits interactively.  
-The project is fully JavaScript-based (MERN stack) and uses a local JS simulator on the backend.
-It does not depend on IBM services or Python runtimes.
+MERN Quantum is a JavaScript-only full-stack app for interactive quantum circuit simulation.
 
-This app allows users to:
+## What You Can Do
 
-- Build quantum circuits using basic gates (H, X, Measure)  
-- Run simulations with single or multiple shots  
-- Visualize probabilistic outcomes  
-- Save and manage circuits with user authentication  
-- Explore circuits step-by-step (educational mode)
+- Build circuits with `H`, `X`, `M`, and `CNOT` gates.
+- Run simulations with configurable shots.
+- Execute circuits in step-by-step educational mode.
+- Save circuits and templates with JWT-based authentication.
+- Browse public templates and personal dashboard data.
 
----
+## Architecture
 
-## 🚀 Features
+- `frontend`: React + Vite client.
+- `backend`: Express + Mongoose API.
+- `frontend/src/features`: feature-first modules:
+	- `multi-run`
+	- `circuit-builder`
+	- `templates`
+	- `step-by-step`
 
-Le feature frontend sono organizzate in `frontend/src/features`.
+## Tech Stack
 
-### Core
-- Interactive Circuit Builder  
-- Feature A: Multi-run nel Circuit Builder con shots configurabili (128/512/1024/4096)  
-- Results visualization (probabilities)  
+- Frontend: React 19, Vite 8, Bootstrap 5.
+- Backend: Node.js, Express 5, Mongoose 9.
+- Auth: JWT (access + refresh cookies), bcrypt.
+- Testing: Vitest + Supertest + mongodb-memory-server.
 
-Implementazione Feature A:
-- File principale: `frontend/src/features/feature-a-multi-run/feature-a-multi-run.js`
-- Sottofile collegati (stato/costanti/utils) nella stessa cartella feature
+## Setup
 
-### Additional
-- Predefined circuit templates  
-- Step-by-step execution  
-- User authentication (JWT)  
-- Dashboard for saved circuits  
+1. Clone and install:
 
----
-
-## 🛠 Tech Stack
-
-- Frontend: React, Tailwind CSS (optional)  
-- Backend: Node.js, Express.js  
-- Database: MongoDB  
-- Authentication: JWT + bcrypt  
-- Testing: Node.js test runner (`node --test`)  
-
----
-
-📦 Install dependencies:
-
-cd backend
-npm install
-cd ../frontend
-npm install
+```bash
 git clone https://github.com/mattiagiuliani/mern-quantum.git
+cd mern-quantum
+npm install
+npm install --workspace=backend
+npm install --workspace=frontend
+```
 
----
+2. Configure env files.
 
-Setup environment variables:
+`backend/.env`:
 
-backend/.env
+```env
 MONGODB_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=30d
+CORS_ORIGIN=http://localhost:5173
 PORT=3001
-QUANTUM_SEMANTICS_MODE=v2
+```
 
-frontend/.env
+`frontend/.env`:
+
+```env
 VITE_API_URL=http://localhost:3001/api
+```
 
-`QUANTUM_SEMANTICS_MODE` options:
-- `v2` (default): simplified, stable semantics (H toggles superposition, X acts as classical NOT only on deterministic states, M collapses/output)
-- `v1`: legacy behavior (quick rollback mode)
+## Run
 
----
+```bash
+npm run dev:backend
+npm run dev:frontend
+```
 
-Run backend:
+Open `http://localhost:5173`.
 
-cd backend
-npm run dev
+## Test
 
----
+```bash
+npm run test:backend
+npm run test:frontend
+```
 
-Run frontend:
+Note: integration route tests use `mongodb-memory-server` and may fail if local binary cache/download is corrupted.
 
-cd frontend
-npm run dev
+## API Docs
 
----
+Detailed backend endpoints are documented in `backend/API.md`.
 
-Open http://localhost:5173 in your browser.
+## Feature Docs
 
----
+- `frontend/src/features/multi-run/README.md`
+- `frontend/src/features/circuit-builder/README.md`
+- `frontend/src/features/templates/README.md`
+- `frontend/src/features/step-by-step/README.md`
 
-🧪 Testing / Test
-
-Run backend tests:
-
-cd backend
-npm test
-
----
-
-Tests include:
-
-Circuit simulation logic
-Circuit API input validation
-Auth endpoints (login/register)
-Protected routes
-
----
-
-🌍 Deployment 
-
-Frontend: Vercel / Netlify
-Backend: Render / Railway
-
----
-
-👀 Screenshots: (to add!)
-
-📄 License / Licenza
+## License
 
 MIT License © 2026 Mattia Giuliani

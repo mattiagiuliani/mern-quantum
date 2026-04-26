@@ -7,7 +7,7 @@ import {
   SHOT_PRESETS,
   calculatePercentage,
   useFeatureAMultiRun,
-} from '../features/feature-a-multi-run/feature-a-multi-run'
+} from '../features/multi-run/index'
 import {
   GATES,
   NUM_QUBITS,
@@ -28,14 +28,14 @@ import {
   LiveStatePanel,
   QasmPreview,
   CircuitSequencePanel,
-} from '../features/feature-b-circuit-builder/feature-b-circuit-builder'
-import { useSaveCircuit } from '../features/feature-b-circuit-builder/useSaveCircuit'
-import { SaveModal } from '../features/feature-b-circuit-builder/components/SaveModal'
+} from '../features/circuit-builder/index'
+import { useSaveCircuit } from '../features/circuit-builder/useSaveCircuit'
+import { SaveModal } from '../features/circuit-builder/components/SaveModal'
 import {
   STEP_BY_STEP_STATUS,
   useFeatureDStepByStep,
   StepByStepControls,
-} from '../features/feature-d-step-by-step/feature-d-step-by-step'
+} from '../features/step-by-step/index'
 
 export default function CircuitBuilderPage() {
   const navigate = useNavigate()
@@ -707,11 +707,11 @@ export default function CircuitBuilderPage() {
                 border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 14, padding: '18px 20px',
                 display: 'flex', flexDirection: 'column', gap: 12,
-              }}>
+              }} data-testid="builder-run-panel">
                 <div style={{
                   fontSize: 10, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.25)',
                   textTransform: 'uppercase',
-                }}>
+              }}>
                   Step 3 · Run simulation
                 </div>
                 <div style={{
@@ -728,6 +728,7 @@ export default function CircuitBuilderPage() {
                     return (
                       <Button
                         key={preset}
+                        data-testid={`shot-preset-${preset}`}
                         disabled={runStatus === 'running' || isGuidedBusy}
                         onClick={() => setSelectedShots(preset)}
                         variant={isActive ? 'outline-info' : 'outline-secondary'}
@@ -740,6 +741,7 @@ export default function CircuitBuilderPage() {
                 </div>
 
                 <Button
+                  data-testid="builder-run-button"
                   className="run-btn"
                   disabled={!hasGates || runStatus === 'running' || isGuidedBusy}
                   onClick={handleRun}

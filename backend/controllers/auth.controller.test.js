@@ -1,11 +1,11 @@
-import test from 'node:test'
-import assert from 'node:assert/strict'
+import { describe, it, afterEach, expect } from 'vitest'
 import { register, login, getMe } from './auth.controller.js'
 import User from '../models/User.model.js'
 
-// JWT_SECRET must be set before any call to signToken
-process.env.JWT_SECRET = 'test-secret-key'
-process.env.JWT_EXPIRES_IN = '7d'
+// JWT env vars must be set before any call to signToken
+process.env.JWT_SECRET         = 'test-secret-key-aaaaaaaaaaaaaa'
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-bbbbbbbbbbb'
+process.env.JWT_EXPIRES_IN     = '15m'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -45,180 +45,183 @@ const FAKE_USER = {
 
 // ─── register ────────────────────────────────────────────────────────────────
 
-test('register rejects missing username', async () => {
-  const req = { body: { email: 'a@b.com', password: '123456' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('register rejects missing email', async () => {
-  const req = { body: { username: 'alice', password: '123456' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('register rejects missing password', async () => {
-  const req = { body: { username: 'alice', email: 'a@b.com' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('register rejects duplicate email', async (t) => {
-  const original = User.findOne
-  // first call checks email → returns existing user
-  User.findOne = async ({ email }) => (email ? FAKE_USER : null)
-  t.after(() => { User.findOne = original })
-
-  const req = { body: { username: 'newuser', email: 'test@example.com', password: 'secret123' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 409)
-  assert.equal(res.body.success, false)
-})
-
-test('register rejects duplicate username', async (t) => {
-  const original = User.findOne
-  let callCount = 0
-  // first call (email check) → null, second call (username check) → found
-  User.findOne = async () => (++callCount === 1 ? null : FAKE_USER)
-  t.after(() => { User.findOne = original })
-
-  const req = { body: { username: 'testuser', email: 'new@example.com', password: 'secret123' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 409)
-  assert.equal(res.body.success, false)
-})
-
-test('register creates user, sets cookie and returns safe user on success', async (t) => {
-  const originalFindOne = User.findOne
-  const originalCreate = User.create
-  User.findOne = async () => null
-  User.create = async () => FAKE_USER
-  t.after(() => {
-    User.findOne = originalFindOne
-    User.create = originalCreate
+describe('register', () => {
+  it('rejects missing username', async () => {
+    const req = { body: { email: 'a@b.com', password: '123456' } }
+    const res = createRes()
+    await register(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
   })
 
-  const req = { body: { username: 'testuser', email: 'test@example.com', password: 'secret123' } }
-  const res = createRes()
-  await register(req, res)
-  assert.equal(res.statusCode, 201)
-  assert.equal(res.body.success, true)
-  assert.equal(res.body.user.username, 'testuser')
-  assert.ok(res._cookies.token, 'JWT cookie should be set')
-  assert.equal(res.body.user.password, undefined, 'password must not be in response')
+  it('rejects missing email', async () => {
+    const req = { body: { username: 'alice', password: '123456' } }
+    const res = createRes()
+    await register(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
+
+  it('rejects missing password', async () => {
+    const req = { body: { username: 'alice', email: 'a@b.com' } }
+    const res = createRes()
+    await register(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
+
+  it('rejects duplicate email', async () => {
+    const original = User.findOne
+    User.findOne = async ({ email }) => (email ? FAKE_USER : null)
+    try {
+      const req = { body: { username: 'newuser', email: 'test@example.com', password: 'secret123' } }
+      const res = createRes()
+      await register(req, res)
+      expect(res.statusCode).toBe(409)
+      expect(res.body.success).toBe(false)
+    } finally {
+      User.findOne = original
+    }
+  })
+
+  it('rejects duplicate username', async () => {
+    const original = User.findOne
+    let callCount = 0
+    User.findOne = async () => (++callCount === 1 ? null : FAKE_USER)
+    try {
+      const req = { body: { username: 'testuser', email: 'new@example.com', password: 'secret123' } }
+      const res = createRes()
+      await register(req, res)
+      expect(res.statusCode).toBe(409)
+      expect(res.body.success).toBe(false)
+    } finally {
+      User.findOne = original
+    }
+  })
+
+  it('creates user, sets cookie and returns safe user on success', async () => {
+    const originalFindOne = User.findOne
+    const originalCreate  = User.create
+    User.findOne = async () => null
+    User.create  = async () => FAKE_USER
+    try {
+      const req = { body: { username: 'testuser', email: 'test@example.com', password: 'secret123' } }
+      const res = createRes()
+      await register(req, res)
+      expect(res.statusCode).toBe(201)
+      expect(res.body.success).toBe(true)
+      expect(res.body.user.username).toBe('testuser')
+      expect(res._cookies.token).toBeTruthy()
+      expect(res.body.user.password).toBeUndefined()
+    } finally {
+      User.findOne = originalFindOne
+      User.create  = originalCreate
+    }
+  })
 })
 
 // ─── login ───────────────────────────────────────────────────────────────────
 
-test('login rejects missing email', async () => {
-  const req = { body: { password: 'secret' } }
-  const res = createRes()
-  await login(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
+describe('login', () => {
+  it('rejects missing email', async () => {
+    const req = { body: { password: 'secret' } }
+    const res = createRes()
+    await login(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
 
-test('login rejects missing password', async () => {
-  const req = { body: { email: 'test@example.com' } }
-  const res = createRes()
-  await login(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
+  it('rejects missing password', async () => {
+    const req = { body: { email: 'test@example.com' } }
+    const res = createRes()
+    await login(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
 
-test('login returns 401 when user not found', async (t) => {
-  const original = User.findOne
-  User.findOne = () => ({ select: async () => null })
-  t.after(() => { User.findOne = original })
+  it('returns 401 when user not found', async () => {
+    const original = User.findOne
+    User.findOne = () => ({ select: async () => null })
+    try {
+      const req = { body: { email: 'nobody@example.com', password: 'whatever' } }
+      const res = createRes()
+      await login(req, res)
+      expect(res.statusCode).toBe(401)
+      expect(res.body.success).toBe(false)
+    } finally {
+      User.findOne = original
+    }
+  })
 
-  const req = { body: { email: 'nobody@example.com', password: 'whatever' } }
-  const res = createRes()
-  await login(req, res)
-  assert.equal(res.statusCode, 401)
-  assert.equal(res.body.success, false)
-})
-
-test('login returns 401 on wrong password', async (t) => {
-  const original = User.findOne
-  User.findOne = () => ({ select: async () => FAKE_USER })
-  t.after(() => { User.findOne = original })
-
-  const req = { body: { email: 'test@example.com', password: 'wrong-password' } }
-  const res = createRes()
-  await login(req, res)
-  assert.equal(res.statusCode, 401)
-  assert.equal(res.body.success, false)
-})
-
-test('login sets cookie and returns safe user on success', async (t) => {
-  const original = User.findOne
-  User.findOne = () => ({ select: async () => FAKE_USER })
-  t.after(() => { User.findOne = original })
-
-  const req = { body: { email: 'test@example.com', password: 'correct-password' } }
-  const res = createRes()
-  await login(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.ok(res._cookies.token, 'JWT cookie should be set')
-  assert.equal(res.body.user.username, 'testuser')
-  assert.equal(res.body.user.password, undefined, 'password must not be in response')
+  it('sets cookie and returns safe user on success', async () => {
+    const original = User.findOne
+    User.findOne = () => ({ select: async () => FAKE_USER })
+    try {
+      const req = { body: { email: 'test@example.com', password: 'correct-password' } }
+      const res = createRes()
+      await login(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+      expect(res._cookies.token).toBeTruthy()
+      expect(res.body.user.username).toBe('testuser')
+      expect(res.body.user.password).toBeUndefined()
+    } finally {
+      User.findOne = original
+    }
+  })
 })
 
 // ─── getMe ───────────────────────────────────────────────────────────────────
 
-test('getMe returns 404 when user no longer exists', async (t) => {
-  const original = User.findById
-  const originalConsoleError = console.error
-  console.error = () => {}
-  User.findById = async () => null
-  t.after(() => {
-    User.findById = original
-    console.error = originalConsoleError
+describe('getMe', () => {
+  it('returns 404 when user no longer exists', async () => {
+    const original = User.findById
+    const originalConsoleError = console.error
+    console.error = () => {}
+    User.findById = async () => null
+    try {
+      const req = { user: { id: '507f191e810c19729de860ea' } }
+      const res = createRes()
+      await getMe(req, res)
+      expect(res.statusCode).toBe(404)
+      expect(res.body.success).toBe(false)
+    } finally {
+      User.findById = original
+      console.error = originalConsoleError
+    }
   })
 
-  const req = { user: { id: '507f191e810c19729de860ea' } }
-  const res = createRes()
-  await getMe(req, res)
-  assert.equal(res.statusCode, 404)
-  assert.equal(res.body.success, false)
-})
-
-test('getMe returns safe user when authenticated', async (t) => {
-  const original = User.findById
-  User.findById = async () => FAKE_USER
-  t.after(() => { User.findById = original })
-
-  const req = { user: { id: '507f191e810c19729de860ea' } }
-  const res = createRes()
-  await getMe(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.equal(res.body.user.username, 'testuser')
-  assert.equal(res.body.user.password, undefined, 'password must not be in response')
-})
-
-test('getMe returns 500 on unexpected error', async (t) => {
-  const original = User.findById
-  const originalConsoleError = console.error
-  console.error = () => {}
-  User.findById = async () => { throw new Error('db failure') }
-  t.after(() => {
-    User.findById = original
-    console.error = originalConsoleError
+  it('returns safe user when authenticated', async () => {
+    const original = User.findById
+    User.findById = async () => FAKE_USER
+    try {
+      const req = { user: { id: '507f191e810c19729de860ea' } }
+      const res = createRes()
+      await getMe(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+      expect(res.body.user.username).toBe('testuser')
+      expect(res.body.user.password).toBeUndefined()
+    } finally {
+      User.findById = original
+    }
   })
 
-  const req = { user: { id: '507f191e810c19729de860ea' } }
-  const res = createRes()
-  await getMe(req, res)
-  assert.equal(res.statusCode, 500)
-  assert.equal(res.body.success, false)
+  it('returns 500 on unexpected error', async () => {
+    const original = User.findById
+    const originalConsoleError = console.error
+    console.error = () => {}
+    User.findById = async () => { throw new Error('db failure') }
+    try {
+      const req = { user: { id: '507f191e810c19729de860ea' } }
+      const res = createRes()
+      await getMe(req, res)
+      expect(res.statusCode).toBe(500)
+      expect(res.body.success).toBe(false)
+    } finally {
+      User.findById = original
+      console.error = originalConsoleError
+    }
+  })
 })
+

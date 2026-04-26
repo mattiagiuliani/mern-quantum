@@ -48,6 +48,7 @@ export default function LoginPage() {
           <Form.Group>
             <Form.Label style={S.label}>Email</Form.Label>
             <Form.Control
+              data-testid="login-email"
               type="email"
               required
               autoComplete="email"
@@ -60,6 +61,7 @@ export default function LoginPage() {
           <Form.Group>
             <Form.Label style={S.label}>Password</Form.Label>
             <Form.Control
+              data-testid="login-password"
               type="password"
               required
               autoComplete="current-password"
@@ -73,6 +75,7 @@ export default function LoginPage() {
           {error && <Alert variant="danger" style={S.error}>{error}</Alert>}
 
           <Button
+            data-testid="login-submit"
             type="submit"
             disabled={loading}
             variant="outline-info"

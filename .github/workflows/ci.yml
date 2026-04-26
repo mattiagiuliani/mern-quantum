@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Backend unit tests
+        run: npx vitest run backend/controllers/auth.controller.test.js backend/controllers/circuit.controller.test.js backend/controllers/template.controller.test.js backend/services/quantum.service.test.js
+
+      - name: Frontend tests
+        run: npm run test:frontend
+
+      - name: Frontend build
+        run: npm run build --workspace=frontend
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (Chromium)
+        run: npx playwright test --project=chromium

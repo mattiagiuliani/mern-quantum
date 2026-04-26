@@ -3,7 +3,14 @@ import mongoose from 'mongoose'
 import Template from '../models/Template.model.js'
 import { ok, fail } from '../utils/respond.js'
 import logger from '../utils/logger.js'
+import { captureBackendError } from '../config/sentry.js'
 
+/**
+ * Normalize incoming payload into the persisted template shape.
+ *
+ * @param {object} [body]
+ * @returns {{name: string, description: string, circuit: unknown, tags: string[], isPublic: boolean}}
+ */
 function normalizePayload(body = {}) {
   return {
     name: typeof body.name === 'string' ? body.name.trim() : '',
@@ -14,6 +21,12 @@ function normalizePayload(body = {}) {
   }
 }
 
+/**
+ * Resolve requester id from auth cookie when route is public.
+ *
+ * @param {import('express').Request} req
+ * @returns {string|null}
+ */
 function getRequesterIdFromCookie(req) {
   try {
     const token = req.cookies?.token
@@ -25,10 +38,23 @@ function getRequesterIdFromCookie(req) {
   }
 }
 
+/**
+ * Validate a potential Mongo ObjectId.
+ *
+ * @param {string} id
+ * @returns {boolean}
+ */
 function isValidTemplateId(id) {
   return mongoose.Types.ObjectId.isValid(id)
 }
 
+/**
+ * POST /api/templates
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const createTemplate = async (req, res) => {
   try {
     const payload = normalizePayload(req.body)
@@ -38,12 +64,20 @@ export const createTemplate = async (req, res) => {
     const template = await Template.create({ ...payload, author: req.user.id })
     return ok(res, { template }, 201)
   } catch (err) {
+    captureBackendError(err, { handler: 'createTemplate' })
     if (err.name === 'ValidationError') return fail(res, err.message)
     logger.error({ err }, '[createTemplate]')
     return fail(res, 'Internal server error', 500)
   }
 }
 
+/**
+ * GET /api/templates/mine
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const getMyTemplates = async (req, res) => {
   try {
     const page  = Math.max(1, parseInt(req.query.page)  || 1)
@@ -61,11 +95,19 @@ export const getMyTemplates = async (req, res) => {
 
     return ok(res, { templates, total, page, pages: Math.ceil(total / limit) })
   } catch (err) {
+    captureBackendError(err, { handler: 'getMyTemplates' })
     logger.error({ err }, '[getMyTemplates]')
     return fail(res, 'Internal server error', 500)
   }
 }
 
+/**
+ * GET /api/templates/public
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const getPublicTemplates = async (req, res) => {
   try {
     const tag   = typeof req.query.tag === 'string' ? req.query.tag.trim() : ''
@@ -87,11 +129,19 @@ export const getPublicTemplates = async (req, res) => {
 
     return ok(res, { templates, total, page, pages: Math.ceil(total / limit) })
   } catch (err) {
+    captureBackendError(err, { handler: 'getPublicTemplates' })
     logger.error({ err }, '[getPublicTemplates]')
     return fail(res, 'Internal server error', 500)
   }
 }
 
+/**
+ * GET /api/templates/:id
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const getTemplateById = async (req, res) => {
   try {
     if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
@@ -109,11 +159,19 @@ export const getTemplateById = async (req, res) => {
 
     return ok(res, { template })
   } catch (err) {
+    captureBackendError(err, { handler: 'getTemplateById' })
     logger.error({ err }, '[getTemplateById]')
     return fail(res, 'Internal server error', 500)
   }
 }
 
+/**
+ * PUT /api/templates/:id
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const updateTemplate = async (req, res) => {
   try {
     if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
@@ -134,12 +192,20 @@ export const updateTemplate = async (req, res) => {
     await template.save()
     return ok(res, { template })
   } catch (err) {
+    captureBackendError(err, { handler: 'updateTemplate' })
     if (err.name === 'ValidationError') return fail(res, err.message)
     logger.error({ err }, '[updateTemplate]')
     return fail(res, 'Internal server error', 500)
   }
 }
 
+/**
+ * DELETE /api/templates/:id
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
+ */
 export const deleteTemplate = async (req, res) => {
   try {
     if (!isValidTemplateId(req.params.id)) return fail(res, 'Invalid template id')
@@ -151,6 +217,7 @@ export const deleteTemplate = async (req, res) => {
     await template.deleteOne()
     return ok(res, { message: 'Template deleted' })
   } catch (err) {
+    captureBackendError(err, { handler: 'deleteTemplate' })
     logger.error({ err }, '[deleteTemplate]')
     return fail(res, 'Internal server error', 500)
   }

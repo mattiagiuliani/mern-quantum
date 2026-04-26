@@ -6,18 +6,18 @@ import {
   TEMPLATE_COPY,
   TEMPLATE_TABS,
   useFeatureCTemplates,
-} from '../features/feature-c-templates/feature-c-templates'
-import { SaveTemplateModal } from '../features/feature-c-templates/components/SaveTemplateModal'
-import { TemplateCard } from '../features/feature-c-templates/components/TemplateCard'
-import { TemplatePreviewPanel } from '../features/feature-c-templates/components/TemplatePreviewPanel'
-import { TemplateTabs } from '../features/feature-c-templates/components/TemplateTabs'
+} from '../features/templates/index'
+import { SaveTemplateModal } from '../features/templates/components/SaveTemplateModal'
+import { TemplateCard } from '../features/templates/components/TemplateCard'
+import { TemplatePreviewPanel } from '../features/templates/components/TemplatePreviewPanel'
+import { TemplateTabs } from '../features/templates/components/TemplateTabs'
 import {
   TEMPLATE_EMPTY_STATE_BOX_STYLE,
   TEMPLATE_FILTER_INPUT_STYLE,
   TEMPLATE_LOCKED_STATE_BOX_STYLE,
   TEMPLATE_PAGE_BUTTON_STYLES,
-} from '../features/feature-c-templates/template.styles'
-import { cloneCircuit, isCircuitEmpty } from '../features/feature-c-templates/template.utils'
+} from '../features/templates/template.styles'
+import { cloneCircuit, isCircuitEmpty } from '../features/templates/template.utils'
 
 export default function TemplatesPage() {
   const navigate = useNavigate()
@@ -192,7 +192,7 @@ export default function TemplatesPage() {
           }
         }
       `}</style>
-      <div className="templates-page-shell">
+      <div className="templates-page-shell" data-testid="templates-page">
         <div className="templates-page-inner templates-layout">
           <section style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <header className="templates-header">
@@ -205,6 +205,7 @@ export default function TemplatesPage() {
 
               <div className="templates-header-actions">
                 <Button
+                  data-testid="templates-back-builder"
                   onClick={() => navigate('/circuit-builder')}
                   variant="outline-secondary"
                   style={TEMPLATE_PAGE_BUTTON_STYLES.secondary}
@@ -212,6 +213,7 @@ export default function TemplatesPage() {
                   {TEMPLATE_COPY.backToBuilder}
                 </Button>
                 <Button
+                  data-testid="templates-save-current"
                   onClick={() => openSaveModal(null)}
                   disabled={!canOpenSave}
                   variant="outline-info"
@@ -230,6 +232,7 @@ export default function TemplatesPage() {
 
             <div>
               <Form.Control
+                data-testid="templates-filter-input"
                 value={tagFilter}
                 onChange={(event) => setTagFilter(event.target.value)}
                 placeholder={TEMPLATE_COPY.filterByTagPlaceholder}

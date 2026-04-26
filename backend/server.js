@@ -5,7 +5,7 @@ import logger from './utils/logger.js'
 
 // ─── env validation ──────────────────────────────────────────────────────────
 
-const REQUIRED_ENV = ['JWT_SECRET', 'MONGODB_URI', 'CORS_ORIGIN']
+const REQUIRED_ENV = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'MONGODB_URI', 'CORS_ORIGIN']
 const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k])
 if (missingEnv.length > 0) {
   logger.fatal({ missingEnv }, 'Missing required env vars')

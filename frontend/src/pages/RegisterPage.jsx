@@ -54,6 +54,7 @@ export default function RegisterPage() {
           <Form.Group>
             <Form.Label style={S.label}>Username</Form.Label>
             <Form.Control
+              data-testid="register-username"
               type="text"
               required
               autoComplete="username"
@@ -68,6 +69,7 @@ export default function RegisterPage() {
           <Form.Group>
             <Form.Label style={S.label}>Email</Form.Label>
             <Form.Control
+              data-testid="register-email"
               type="email"
               required
               autoComplete="email"
@@ -80,6 +82,7 @@ export default function RegisterPage() {
           <Form.Group>
             <Form.Label style={S.label}>Password</Form.Label>
             <Form.Control
+              data-testid="register-password"
               type="password"
               required
               autoComplete="new-password"
@@ -93,6 +96,7 @@ export default function RegisterPage() {
           {error && <Alert variant="danger" style={S.error}>{error}</Alert>}
 
           <Button
+            data-testid="register-submit"
             type="submit"
             disabled={loading}
             variant="outline-info"

@@ -1,5 +1,4 @@
-import test from 'node:test'
-import assert from 'node:assert/strict'
+﻿import { describe, it, expect } from 'vitest'
 import { runCircuit, applyGate, saveCircuit, getMineCircuits, getCircuitById, updateCircuit, deleteCircuit } from './circuit.controller.js'
 import Circuit from '../models/Circuit.model.js'
 
@@ -18,71 +17,71 @@ function createRes() {
   }
 }
 
-test('runCircuit rejects non-rectangular or invalid-gate circuits', () => {
-  const badShapeReq = { body: { circuit: [['H', null], ['M']] } }
-  const badGateReq = { body: { circuit: [['H', 'Z']] } }
+describe('runCircuit', () => {
+  it('rejects non-rectangular or invalid-gate circuits', () => {
+    const badShapeReq = { body: { circuit: [['H', null], ['M']] } }
+    const badGateReq = { body: { circuit: [['H', 'Z']] } }
 
-  const res1 = createRes()
-  runCircuit(badShapeReq, res1)
-  assert.equal(res1.statusCode, 400)
-  assert.equal(res1.body.success, false)
+    const res1 = createRes()
+    runCircuit(badShapeReq, res1)
+    expect(res1.statusCode).toBe(400)
+    expect(res1.body.success).toBe(false)
 
-  const res2 = createRes()
-  runCircuit(badGateReq, res2)
-  assert.equal(res2.statusCode, 400)
-  assert.equal(res2.body.success, false)
+    const res2 = createRes()
+    runCircuit(badGateReq, res2)
+    expect(res2.statusCode).toBe(400)
+    expect(res2.body.success).toBe(false)
+  })
+
+  it('success response shape is preserved', () => {
+    const req = { body: { circuit: [['X', 'M']], shots: 8 } }
+    const res = createRes()
+    runCircuit(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.shots).toBe(8)
+    expect(typeof res.body.counts).toBe('object')
+  })
 })
 
-test('runCircuit success response shape is preserved', () => {
-  const req = { body: { circuit: [['X', 'M']], shots: 8 } }
-  const res = createRes()
+describe('applyGate', () => {
+  it('validates qubitStates and qubitIndex', () => {
+    const badStatesReq = {
+      body: { qubitStates: [{ value: 2, superposition: false }], gate: 'X', qubitIndex: 0 },
+    }
+    const badIndexReq = {
+      body: { qubitStates: [{ value: 0, superposition: false }], gate: 'X', qubitIndex: 0.5 },
+    }
 
-  runCircuit(req, res)
+    const res1 = createRes()
+    applyGate(badStatesReq, res1)
+    expect(res1.statusCode).toBe(400)
+    expect(res1.body.success).toBe(false)
 
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.equal(res.body.shots, 8)
-  assert.equal(typeof res.body.counts, 'object')
+    const res2 = createRes()
+    applyGate(badIndexReq, res2)
+    expect(res2.statusCode).toBe(400)
+    expect(res2.body.success).toBe(false)
+  })
+
+  it('success path remains compatible', () => {
+    const req = {
+      body: {
+        qubitStates: [{ value: 0, superposition: false }],
+        gate: 'X',
+        qubitIndex: 0,
+      },
+    }
+    const res = createRes()
+    applyGate(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.measurement).toBeNull()
+    expect(res.body.qubitStates).toEqual([{ value: 1, superposition: false }])
+  })
 })
 
-test('applyGate validates qubitStates and qubitIndex', () => {
-  const badStatesReq = {
-    body: { qubitStates: [{ value: 2, superposition: false }], gate: 'X', qubitIndex: 0 },
-  }
-  const badIndexReq = {
-    body: { qubitStates: [{ value: 0, superposition: false }], gate: 'X', qubitIndex: 0.5 },
-  }
-
-  const res1 = createRes()
-  applyGate(badStatesReq, res1)
-  assert.equal(res1.statusCode, 400)
-  assert.equal(res1.body.success, false)
-
-  const res2 = createRes()
-  applyGate(badIndexReq, res2)
-  assert.equal(res2.statusCode, 400)
-  assert.equal(res2.body.success, false)
-})
-
-test('applyGate success path remains compatible', () => {
-  const req = {
-    body: {
-      qubitStates: [{ value: 0, superposition: false }],
-      gate: 'X',
-      qubitIndex: 0,
-    },
-  }
-  const res = createRes()
-
-  applyGate(req, res)
-
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.equal(res.body.measurement, null)
-  assert.deepEqual(res.body.qubitStates, [{ value: 1, superposition: false }])
-})
-
-// ─── shared fixtures ─────────────────────────────────────────────────────────
+// â”€â”€â”€ shared fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const OWNER_ID = '507f191e810c19729de860ea'
 const OTHER_ID = '507f191e810c19729de860ff'
@@ -112,210 +111,241 @@ function makeChainableFindResult(docs) {
   return chain
 }
 
-// ─── saveCircuit ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ saveCircuit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('saveCircuit rejects missing circuitMatrix', async () => {
-  const req = { body: { name: 'test' }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await saveCircuit(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('saveCircuit creates circuit and returns 201', async (t) => {
-  const original = Circuit.create
-  const fake = makeFakeCircuit()
-  Circuit.create = async () => fake
-  t.after(() => { Circuit.create = original })
-
-  const req = {
-    body: { name: 'My circuit', circuitMatrix: [['H', null], ['X', null]] },
-    user: { id: OWNER_ID },
-  }
-  const res = createRes()
-  await saveCircuit(req, res)
-  assert.equal(res.statusCode, 201)
-  assert.equal(res.body.success, true)
-  assert.ok(res.body.circuit)
-})
-
-// ─── getMineCircuits ──────────────────────────────────────────────────────────
-
-test('getMineCircuits returns circuits for authenticated user', async (t) => {
-  const originalFind = Circuit.find
-  const originalCount = Circuit.countDocuments
-  Circuit.find = () => makeChainableFindResult([makeFakeCircuit()])
-  Circuit.countDocuments = async () => 1
-  t.after(() => {
-    Circuit.find = originalFind
-    Circuit.countDocuments = originalCount
+describe('saveCircuit', () => {
+  it('rejects missing circuitMatrix', async () => {
+    const req = { body: { name: 'test' }, user: { id: OWNER_ID } }
+    const res = createRes()
+    await saveCircuit(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
   })
 
-  const req = { user: { id: OWNER_ID }, query: {} }
-  const res = createRes()
-  await getMineCircuits(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.ok(Array.isArray(res.body.circuits))
-  assert.equal(res.body.circuits.length, 1)
+  it('creates circuit and returns 201', async () => {
+    const original = Circuit.create
+    const fake = makeFakeCircuit()
+    Circuit.create = async () => fake
+    try {
+      const req = {
+        body: { name: 'My circuit', circuitMatrix: [['H', null], ['X', null]] },
+        user: { id: OWNER_ID },
+      }
+      const res = createRes()
+      await saveCircuit(req, res)
+      expect(res.statusCode).toBe(201)
+      expect(res.body.success).toBe(true)
+      expect(res.body.circuit).toBeTruthy()
+    } finally {
+      Circuit.create = original
+    }
+  })
 })
 
-test('getMineCircuits returns 500 on DB error', async (t) => {
-  const originalFind  = Circuit.find
-  const originalCount = Circuit.countDocuments
-  Circuit.find = () => { throw new Error('db failure') }
-  Circuit.countDocuments = async () => 0
-  t.after(() => {
-    Circuit.find  = originalFind
-    Circuit.countDocuments = originalCount
+// â”€â”€â”€ getMineCircuits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe('getMineCircuits', () => {
+  it('returns circuits for authenticated user', async () => {
+    const originalFind  = Circuit.find
+    const originalCount = Circuit.countDocuments
+    Circuit.find = () => makeChainableFindResult([makeFakeCircuit()])
+    Circuit.countDocuments = async () => 1
+    try {
+      const req = { user: { id: OWNER_ID }, query: {} }
+      const res = createRes()
+      await getMineCircuits(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+      expect(Array.isArray(res.body.circuits)).toBe(true)
+      expect(res.body.circuits.length).toBe(1)
+    } finally {
+      Circuit.find = originalFind
+      Circuit.countDocuments = originalCount
+    }
   })
 
-  const req = { user: { id: OWNER_ID }, query: {} }
-  const res = createRes()
-  await getMineCircuits(req, res)
-  assert.equal(res.statusCode, 500)
-  assert.equal(res.body.success, false)
+  it('returns 500 on DB error', async () => {
+    const originalFind  = Circuit.find
+    const originalCount = Circuit.countDocuments
+    Circuit.find = () => { throw new Error('db failure') }
+    Circuit.countDocuments = async () => 0
+    try {
+      const req = { user: { id: OWNER_ID }, query: {} }
+      const res = createRes()
+      await getMineCircuits(req, res)
+      expect(res.statusCode).toBe(500)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.find = originalFind
+      Circuit.countDocuments = originalCount
+    }
+  })
 })
 
-// ─── getCircuitById ───────────────────────────────────────────────────────────
+// â”€â”€â”€ getCircuitById â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('getCircuitById rejects invalid id format', async () => {
-  const req = { params: { id: 'not-an-id' }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await getCircuitById(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
+describe('getCircuitById', () => {
+  it('rejects invalid id format', async () => {
+    const req = { params: { id: 'not-an-id' }, user: { id: OWNER_ID } }
+    const res = createRes()
+    await getCircuitById(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
+
+  it('returns 404 when circuit not found', async () => {
+    const original = Circuit.findById
+    Circuit.findById = () => ({ lean: async () => null })
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await getCircuitById(req, res)
+      expect(res.statusCode).toBe(404)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('returns 403 for non-owner', async () => {
+    const original = Circuit.findById
+    Circuit.findById = () => ({ lean: async () => makeFakeCircuit(OTHER_ID) })
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await getCircuitById(req, res)
+      expect(res.statusCode).toBe(403)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('returns circuit for owner', async () => {
+    const original = Circuit.findById
+    Circuit.findById = () => ({ lean: async () => makeFakeCircuit(OWNER_ID) })
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await getCircuitById(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+      expect(res.body.circuit).toBeTruthy()
+    } finally {
+      Circuit.findById = original
+    }
+  })
 })
 
-test('getCircuitById returns 404 when circuit not found', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = () => ({ lean: async () => null })
-  t.after(() => { Circuit.findById = original })
+// â”€â”€â”€ updateCircuit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await getCircuitById(req, res)
-  assert.equal(res.statusCode, 404)
-  assert.equal(res.body.success, false)
+describe('updateCircuit', () => {
+  it('rejects invalid id format', async () => {
+    const req = { params: { id: 'bad-id' }, body: {}, user: { id: OWNER_ID } }
+    const res = createRes()
+    await updateCircuit(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
+
+  it('returns 404 when circuit not found', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => null
+    try {
+      const req = { params: { id: CIRCUIT_ID }, body: {}, user: { id: OWNER_ID } }
+      const res = createRes()
+      await updateCircuit(req, res)
+      expect(res.statusCode).toBe(404)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('returns 403 for non-owner', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => makeFakeCircuit(OTHER_ID)
+    try {
+      const req = { params: { id: CIRCUIT_ID }, body: { name: 'new' }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await updateCircuit(req, res)
+      expect(res.statusCode).toBe(403)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('updates name and returns 200', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => makeFakeCircuit(OWNER_ID)
+    try {
+      const req = {
+        params: { id: CIRCUIT_ID },
+        body: { name: 'Updated name' },
+        user: { id: OWNER_ID },
+      }
+      const res = createRes()
+      await updateCircuit(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+    } finally {
+      Circuit.findById = original
+    }
+  })
 })
 
-test('getCircuitById returns 403 for non-owner', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = () => ({ lean: async () => makeFakeCircuit(OTHER_ID) })
-  t.after(() => { Circuit.findById = original })
+// â”€â”€â”€ deleteCircuit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await getCircuitById(req, res)
-  assert.equal(res.statusCode, 403)
-  assert.equal(res.body.success, false)
+describe('deleteCircuit', () => {
+  it('rejects invalid id format', async () => {
+    const req = { params: { id: 'bad-id' }, user: { id: OWNER_ID } }
+    const res = createRes()
+    await deleteCircuit(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body.success).toBe(false)
+  })
+
+  it('returns 404 when circuit not found', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => null
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await deleteCircuit(req, res)
+      expect(res.statusCode).toBe(404)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('returns 403 for non-owner', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => makeFakeCircuit(OTHER_ID)
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await deleteCircuit(req, res)
+      expect(res.statusCode).toBe(403)
+      expect(res.body.success).toBe(false)
+    } finally {
+      Circuit.findById = original
+    }
+  })
+
+  it('removes circuit and returns 200', async () => {
+    const original = Circuit.findById
+    Circuit.findById = async () => makeFakeCircuit(OWNER_ID)
+    try {
+      const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
+      const res = createRes()
+      await deleteCircuit(req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.body.success).toBe(true)
+    } finally {
+      Circuit.findById = original
+    }
+  })
 })
 
-test('getCircuitById returns circuit for owner', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = () => ({ lean: async () => makeFakeCircuit(OWNER_ID) })
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await getCircuitById(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-  assert.ok(res.body.circuit)
-})
-
-// ─── updateCircuit ────────────────────────────────────────────────────────────
-
-test('updateCircuit rejects invalid id format', async () => {
-  const req = { params: { id: 'bad-id' }, body: {}, user: { id: OWNER_ID } }
-  const res = createRes()
-  await updateCircuit(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('updateCircuit returns 404 when circuit not found', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => null
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, body: {}, user: { id: OWNER_ID } }
-  const res = createRes()
-  await updateCircuit(req, res)
-  assert.equal(res.statusCode, 404)
-  assert.equal(res.body.success, false)
-})
-
-test('updateCircuit returns 403 for non-owner', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => makeFakeCircuit(OTHER_ID)
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, body: { name: 'new' }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await updateCircuit(req, res)
-  assert.equal(res.statusCode, 403)
-  assert.equal(res.body.success, false)
-})
-
-test('updateCircuit updates name and returns 200', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => makeFakeCircuit(OWNER_ID)
-  t.after(() => { Circuit.findById = original })
-
-  const req = {
-    params: { id: CIRCUIT_ID },
-    body: { name: 'Updated name' },
-    user: { id: OWNER_ID },
-  }
-  const res = createRes()
-  await updateCircuit(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-})
-
-// ─── deleteCircuit ────────────────────────────────────────────────────────────
-
-test('deleteCircuit rejects invalid id format', async () => {
-  const req = { params: { id: 'bad-id' }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await deleteCircuit(req, res)
-  assert.equal(res.statusCode, 400)
-  assert.equal(res.body.success, false)
-})
-
-test('deleteCircuit returns 404 when circuit not found', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => null
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await deleteCircuit(req, res)
-  assert.equal(res.statusCode, 404)
-  assert.equal(res.body.success, false)
-})
-
-test('deleteCircuit returns 403 for non-owner', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => makeFakeCircuit(OTHER_ID)
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await deleteCircuit(req, res)
-  assert.equal(res.statusCode, 403)
-  assert.equal(res.body.success, false)
-})
-
-test('deleteCircuit removes circuit and returns 200', async (t) => {
-  const original = Circuit.findById
-  Circuit.findById = async () => makeFakeCircuit(OWNER_ID)
-  t.after(() => { Circuit.findById = original })
-
-  const req = { params: { id: CIRCUIT_ID }, user: { id: OWNER_ID } }
-  const res = createRes()
-  await deleteCircuit(req, res)
-  assert.equal(res.statusCode, 200)
-  assert.equal(res.body.success, true)
-})

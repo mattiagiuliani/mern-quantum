@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import User from '../models/User.model.js'
 import { ok, fail } from '../utils/respond.js'
 import logger from '../utils/logger.js'
+import { captureBackendError } from '../config/sentry.js'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,7 @@ const signAccessToken = (userId) =>
   })
 
 const signRefreshToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET + '_refresh', {
+  jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
   })
 
@@ -54,6 +55,10 @@ const sendTokenResponse = (user, statusCode, res) => {
 /**
  * POST /api/auth/register
  * Body: { username, email, password }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response|void>}
  */
 export const register = async (req, res) => {
   try {
@@ -72,6 +77,7 @@ export const register = async (req, res) => {
     const user = await User.create({ username, email, password })
     sendTokenResponse(user, 201, res)
   } catch (err) {
+    captureBackendError(err, { handler: 'register' })
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message)
       return fail(res, messages.join('. '))
@@ -84,6 +90,10 @@ export const register = async (req, res) => {
 /**
  * POST /api/auth/login
  * Body: { email, password }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response|void>}
  */
 export const login = async (req, res) => {
   try {
@@ -101,6 +111,7 @@ export const login = async (req, res) => {
 
     sendTokenResponse(user, 200, res)
   } catch (err) {
+    captureBackendError(err, { handler: 'login' })
     logger.error({ err }, '[login]')
     return fail(res, 'Internal server error', 500)
   }
@@ -109,6 +120,10 @@ export const login = async (req, res) => {
 /**
  * POST /api/auth/logout
  * Clears both access and refresh token cookies.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response>}
  */
 export const logout = async (req, res) => {
   const secure = process.env.NODE_ENV === 'production'
@@ -122,6 +137,10 @@ export const logout = async (req, res) => {
 /**
  * POST /api/auth/refresh
  * Issues a new access token using the refreshToken cookie.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response|void>}
  */
 export const refresh = async (req, res) => {
   const token = req.cookies?.refreshToken
@@ -130,7 +149,7 @@ export const refresh = async (req, res) => {
   try {
     const decoded = jwt.verify(
       token,
-      process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET + '_refresh',
+      process.env.JWT_REFRESH_SECRET,
     )
     const user = await User.findById(decoded.id)
     if (!user) return fail(res, 'User not found', 401)
@@ -153,6 +172,10 @@ export const refresh = async (req, res) => {
 /**
  * GET /api/auth/me
  * Richiede il middleware protect — req.user.id è già verificato.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<import('express').Response|void>}
  */
 export const getMe = async (req, res) => {
   try {
@@ -160,6 +183,7 @@ export const getMe = async (req, res) => {
     if (!user) return fail(res, 'User not found', 404)
     return ok(res, { user: user.toSafeObject() })
   } catch (err) {
+    captureBackendError(err, { handler: 'getMe' })
     logger.error({ err }, '[getMe]')
     return fail(res, 'Internal server error', 500)
   }

@@ -30,27 +30,150 @@ export function applyGateStep(val, sup, gate) {
   return [val, sup, null]
 }
 
+// ─── Statevector simulation helpers ──────────────────────────────────────────
+
 /**
- * Apply CNOT to a mutable (val[], sup[]) state array.
- * If the control qubit is in superposition it collapses first (shot-based model).
- * If val[ctrl] === 1 after collapse, the target qubit is flipped deterministically.
- *
- * @param {number[]}  val       mutable qubit value array
- * @param {boolean[]} sup       mutable superposition flag array
- * @param {number}    ctrlIdx   control qubit index
- * @param {number}    tgtIdx    target qubit index
+ * Create initial |0...0⟩ statevector for n qubits.
+ * Stored as Float64Array of length 2*2^n: [re_0, im_0, re_1, im_1, ...]
  */
-function applyCNOT(val, sup, ctrlIdx, tgtIdx) {
-  // Collapse control if in superposition
-  if (sup[ctrlIdx]) {
-    val[ctrlIdx] = Math.random() < 0.5 ? 0 : 1
-    sup[ctrlIdx] = false
+function createStatevector(numQubits) {
+  const size = 1 << numQubits // 2^n
+  const sv = new Float64Array(2 * size)
+  sv[0] = 1.0 // |0⟩ state
+  return sv
+}
+
+/**
+ * Apply Hadamard gate to qubit q: |0⟩ → (|0⟩+|1⟩)/√2, |1⟩ → (|0⟩-|1⟩)/√2
+ */
+function applyH(sv, n, q) {
+  const size = 1 << n
+  const step = 1 << (q + 1)
+  const sqrtInv2 = 1 / Math.sqrt(2)
+
+  for (let i = 0; i < size; i += step) {
+    const j = i + (1 << q)
+    const idx_i = 2 * i
+    const idx_j = 2 * j
+    
+    const re0 = sv[idx_i], im0 = sv[idx_i + 1]
+    const re1 = sv[idx_j], im1 = sv[idx_j + 1]
+    
+    sv[idx_i]     = sqrtInv2 * (re0 + re1)
+    sv[idx_i + 1] = sqrtInv2 * (im0 + im1)
+    sv[idx_j]     = sqrtInv2 * (re0 - re1)
+    sv[idx_j + 1] = sqrtInv2 * (im0 - im1)
   }
-  // Apply NOT to target iff control is |1⟩
-  if (val[ctrlIdx] === 1) {
-    val[tgtIdx] = 1 - val[tgtIdx]
-    sup[tgtIdx] = false
+}
+
+/**
+ * Apply Pauli-X gate (NOT): |0⟩ ↔ |1⟩
+ */
+function applyX(sv, n, q) {
+  const size = 1 << n
+  const step = 1 << (q + 1)
+  
+  for (let i = 0; i < size; i += step) {
+    const j = i + (1 << q)
+    const idx_i = 2 * i
+    const idx_j = 2 * j
+    
+    // Swap amplitude at i with amplitude at j
+    let temp = sv[idx_i]
+    sv[idx_i] = sv[idx_j]
+    sv[idx_j] = temp
+    
+    temp = sv[idx_i + 1]
+    sv[idx_i + 1] = sv[idx_j + 1]
+    sv[idx_j + 1] = temp
   }
+}
+
+/**
+ * Apply CNOT gate: if control=|1⟩ then flip target
+ */
+function applyCNOT(sv, n, ctrl, tgt) {
+  const size = 1 << n
+  const ctrlMask = 1 << ctrl
+  const tgtMask = 1 << tgt
+  
+  for (let i = 0; i < size; i++) {
+    // Only swap amplitudes when control bit is 1
+    if ((i & ctrlMask) !== 0) {
+      const j = i ^ tgtMask // flip target bit
+      if (i < j) { // avoid double swap
+        const idx_i = 2 * i
+        const idx_j = 2 * j
+        
+        let temp = sv[idx_i]
+        sv[idx_i] = sv[idx_j]
+        sv[idx_j] = temp
+        
+        temp = sv[idx_i + 1]
+        sv[idx_i + 1] = sv[idx_j + 1]
+        sv[idx_j + 1] = temp
+      }
+    }
+  }
+}
+
+/**
+ * Measure qubit q: collapse to |0⟩ or |1⟩ with probability |amplitude|².
+ * Modifies statevector in-place, returns measurement result (0 or 1).
+ */
+function measureQubit(sv, n, q) {
+  const size = 1 << n
+  const mask = 1 << q
+  let prob0 = 0
+  
+  // Calculate probability of measuring 0
+  for (let i = 0; i < size; i++) {
+    if ((i & mask) === 0) {
+      const idx = 2 * i
+      prob0 += sv[idx] * sv[idx] + sv[idx + 1] * sv[idx + 1]
+    }
+  }
+  
+  const result = Math.random() < prob0 ? 0 : 1
+  const normFactor = 1 / Math.sqrt(result === 0 ? prob0 : (1 - prob0))
+  
+  // Collapse: zero amplitudes for other outcome, renormalize
+  for (let i = 0; i < size; i++) {
+    if (((i & mask) === 0) !== (result === 0)) {
+      sv[2 * i] = 0
+      sv[2 * i + 1] = 0
+    } else {
+      sv[2 * i] *= normFactor
+      sv[2 * i + 1] *= normFactor
+    }
+  }
+  
+  return result
+}
+
+/**
+ * Sample measurement results from statevector: measure all qubits according to |ψ|².
+ */
+function sampleFromStatevector(sv, n) {
+  const size = 1 << n
+  let totalProb = 0
+  const probs = new Array(size)
+  
+  // Calculate |amplitude|² for each basis state
+  for (let i = 0; i < size; i++) {
+    const idx = 2 * i
+    probs[i] = sv[idx] * sv[idx] + sv[idx + 1] * sv[idx + 1]
+    totalProb += probs[i]
+  }
+  
+  // Normalize and sample
+  let rand = Math.random() * totalProb
+  for (let i = 0; i < size; i++) {
+    rand -= probs[i]
+    if (rand <= 0) return i.toString(2).padStart(n, '0')
+  }
+  
+  return (size - 1).toString(2).padStart(n, '0')
 }
 
 /**
@@ -72,34 +195,28 @@ export function simulate(circuit, shots = 1024) {
   const counts = {}
 
   for (let shot = 0; shot < shots; shot++) {
-    const val      = Array(numQubits).fill(0)
-    const sup      = Array(numQubits).fill(false)
-    const classical = Array(numQubits).fill(0)
-
+    const sv = createStatevector(numQubits)
+    
+    // Execute circuit
     for (let step = 0; step < numSteps; step++) {
       for (let q = 0; q < numQubits; q++) {
         const cell = circuit[q][step]
         if (!cell) continue
 
-        // CNOT: process only the ctrl cell; skip tgt (handled together with ctrl)
-        if (typeof cell === 'object') {
-          if (cell.gate === 'CNOT' && cell.role === 'ctrl') {
-            applyCNOT(val, sup, q, cell.partner)
-          }
-          // tgt cells are intentionally skipped here
-          continue
+        // Gate dispatch
+        if (typeof cell === 'string') {
+          if (cell === 'H') applyH(sv, numQubits, q)
+          else if (cell === 'X') applyX(sv, numQubits, q)
+          else if (cell === 'M') measureQubit(sv, numQubits, q)
+        } else if (typeof cell === 'object' && cell.gate === 'CNOT' && cell.role === 'ctrl') {
+          applyCNOT(sv, numQubits, q, cell.partner)
         }
-
-        // Single-qubit gate
-        const [nv, ns, meas] = applyGateStep(val[q], sup[q], cell)
-        val[q] = nv
-        sup[q] = ns
-        if (meas !== null) classical[q] = meas
       }
     }
-
-    const key = classical.join('')
-    counts[key] = (counts[key] ?? 0) + 1
+    
+    // Sample final state
+    const result = sampleFromStatevector(sv, numQubits)
+    counts[result] = (counts[result] ?? 0) + 1
   }
 
   return { counts, shots }

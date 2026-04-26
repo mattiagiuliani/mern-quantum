@@ -9,6 +9,8 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import pinoHttp from 'pino-http'
 import logger from './utils/logger.js'
+import { initSentry, sentryRequestContext } from './config/sentry.js'
+import { perfLogger } from './middleware/perf.js'
 import authRoutes from './routes/auth.routes.js'
 import circuitRoutes from './routes/circuit.routes.js'
 import templateRoutes from './routes/template.routes.js'
@@ -32,7 +34,11 @@ const simulationLimiter = rateLimit({
 export function createApp() {
   const app = express()
 
+  initSentry()
+
   app.use(pinoHttp({ logger }))
+  app.use(perfLogger)
+  app.use(sentryRequestContext)
   app.use(helmet())
   const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173,http://localhost:5174').split(',').map(o => o.trim())
   app.use(cors({ origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)), credentials: true }))
