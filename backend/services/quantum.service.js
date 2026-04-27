@@ -2,12 +2,33 @@
  * Apply one single-qubit gate described by (val, sup).
  * Returns [nextVal, nextSup, measurement] where measurement is null unless gate === 'M'.
  *
+ * ─── Pedagogical model (step-by-step / live-state panel) ────────────────────
+ * This function implements a *simplified* two-value qubit model rather than a
+ * full complex-amplitude statevector.  The simplification is intentional:
+ *
+ *   • It gives learners instant, human-readable feedback (|0⟩, |1⟩, |+⟩)
+ *     after every gate without requiring them to understand Dirac notation.
+ *   • It maps cleanly to the {value, superposition} JSON shape consumed by
+ *     the frontend live-state panel.
+ *
+ * Known approximations / differences from the statevector model (simulate()):
+ *   • H applied twice returns to the original deterministic state — correct.
+ *   • X on a superposition leaves the distribution unchanged — a pedagogical
+ *     shortcut; in reality X maps |+⟩ → |+⟩ and |−⟩ → −|−⟩.
+ *   • CNOT with a superposed control collapses it before entangling — this
+ *     avoids representing multi-qubit entanglement in the simplified model.
+ *
+ * For statistically accurate results (including entanglement) use simulate(),
+ * which drives the "Run Simulation" feature with a proper Float64Array
+ * statevector.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Simplified model invariants:
  * - val stores a deterministic classical value when sup=false
  * - sup=true means the qubit is in superposition and only collapses on measurement
  *
  * Supported gates: 'H' | 'X' | 'M'
- * CNOT is a two-qubit gate handled directly in simulate().
+ * CNOT is a two-qubit gate handled directly in applyGate() (controller).
  *
  * @param {0|1}    val   current qubit value
  * @param {boolean} sup  superposition flag
@@ -177,9 +198,22 @@ function sampleFromStatevector(sv, n) {
 }
 
 /**
- * @param {Array<Array<string|{gate:'CNOT',role:'ctrl'|'tgt',partner:number}|null>>} circuit
- * @param {number} shots
- * @returns {{ counts: Object<string,number>, shots: number }}
+ * A circuit cell is either a plain gate name, a CNOT descriptor, or empty.
+ * @typedef {string | { gate: 'CNOT', role: 'ctrl'|'tgt', partner: number } | null} CircuitCell
+ */
+
+/**
+ * Run a statevector simulation of the given circuit.
+ *
+ * `circuit` is a 2-D array indexed as `circuit[qubit][step]`.
+ * Each cell is a {@link CircuitCell}.
+ *
+ * Returns bitstring outcome counts summed over all shots.
+ * If no measurement gate is present returns `{ '(no measure)': shots }`.
+ *
+ * @param {CircuitCell[][]} circuit
+ * @param {number} [shots=1024]
+ * @returns {{ counts: Record<string,number>, shots: number }}
  */
 export function simulate(circuit, shots = 1024) {
   const numQubits = circuit.length

@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef } from 'react'
 import { Button } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
 
 /* ─── content data ─────────────────────────────────────────────────────────── */
 
@@ -15,7 +14,7 @@ const CONCEPTS = [
     color: '#6EE7D0',
     accent: '#0D9488',
     icon: (
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
         <circle cx="24" cy="24" r="20" stroke="#6EE7D0" strokeWidth="1.5" strokeDasharray="4 2"/>
         <ellipse cx="24" cy="24" rx="20" ry="8" stroke="#6EE7D0" strokeWidth="1" opacity="0.5"/>
         <circle cx="24" cy="24" r="3" fill="#6EE7D0"/>
@@ -32,7 +31,7 @@ const CONCEPTS = [
     color: '#A78BFA',
     accent: '#7C3AED',
     icon: (
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
         <circle cx="14" cy="24" r="8" stroke="#A78BFA" strokeWidth="1.5"/>
         <circle cx="34" cy="24" r="8" stroke="#A78BFA" strokeWidth="1.5"/>
         <path d="M22 24 Q28 18 26 24 Q28 30 22 24" stroke="#A78BFA" strokeWidth="1" fill="none" opacity="0.7"/>
@@ -50,7 +49,7 @@ const CONCEPTS = [
     color: '#FCA5A5',
     accent: '#DC2626',
     icon: (
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
         <path d="M4 24 Q10 14 16 24 Q22 34 28 24 Q34 14 44 24" stroke="#FCA5A5" strokeWidth="2" fill="none" strokeLinecap="round"/>
         <path d="M4 24 Q10 34 16 24 Q22 14 28 24 Q34 34 44 24" stroke="#FCA5A5" strokeWidth="1" fill="none" strokeDasharray="3 2" opacity="0.5" strokeLinecap="round"/>
       </svg>
@@ -65,7 +64,7 @@ const CONCEPTS = [
     color: '#FCD34D',
     accent: '#D97706',
     icon: (
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
         <rect x="10" y="8" width="28" height="32" rx="4" stroke="#FCD34D" strokeWidth="1.5"/>
         <text x="24" y="30" textAnchor="middle" fill="#FCD34D" fontSize="16" fontWeight="600" fontFamily="serif">H</text>
         <line x1="4" y1="24" x2="10" y2="24" stroke="#FCD34D" strokeWidth="1.5"/>
@@ -147,6 +146,7 @@ function QuantumCanvas() {
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
       style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         opacity: 0.45, pointerEvents: 'none',
@@ -236,7 +236,6 @@ function ConceptCard({ concept, index }) {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [visibleSections, setVisibleSections] = useState(new Set())
   const sectionRefs = useRef({})
 
@@ -451,17 +450,20 @@ export default function HomePage() {
           </div>
 
           {/* decorative Bloch sphere */}
-          <div style={{
-            position: 'absolute',
-            right: 'clamp(20px, 6vw, 100px)',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            opacity: 0.18,
-            animation: 'heroFloat 6s ease-in-out infinite',
-            zIndex: 1,
-            pointerEvents: 'none',
-          }}>
-            <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              right: 'clamp(20px, 6vw, 100px)',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              opacity: 0.18,
+              animation: 'heroFloat 6s ease-in-out infinite',
+              zIndex: 1,
+              pointerEvents: 'none',
+            }}
+          >
+            <svg width="200" height="200" viewBox="0 0 200 200" fill="none" aria-hidden="true">
               <circle cx="100" cy="100" r="88" stroke="#6EE7D0" strokeWidth="1"/>
               <ellipse cx="100" cy="100" rx="88" ry="30" stroke="#6EE7D0" strokeWidth="0.8" strokeDasharray="4 3"/>
               <line x1="100" y1="12" x2="100" y2="188" stroke="#6EE7D0" strokeWidth="0.8"/>
@@ -631,7 +633,7 @@ export default function HomePage() {
                 ['Based on silicon transistors', 'Based on quantum physics'],
                 ['Works at room temperature', 'Works near absolute zero (-273 °C)'],
               ].map(([classic, quantum], i) => (
-                <>
+                <Fragment key={'row-' + i}>
                   <div key={`c-${i}`} style={{
                     background: i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.015)',
                     padding: '14px 24px',
@@ -649,7 +651,7 @@ export default function HomePage() {
                     fontFamily: "'Lora', serif",
                     lineHeight: 1.5,
                   }}>{quantum}</div>
-                </>
+                </Fragment>
               ))}
 
               {/* Footer */}

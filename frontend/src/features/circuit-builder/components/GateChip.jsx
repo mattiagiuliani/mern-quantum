@@ -19,8 +19,15 @@ export function GateChip({ type, size = 'md', onClick, isNew = false }) {
       ? `CNOT control \u2192 q[${type.partner}]`
       : `CNOT target \u2190 q[${type.partner}]`
 
+    const interactiveProps = onClick ? {
+      role: 'button',
+      tabIndex: 0,
+      onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } },
+    } : {}
+
     return (
       <div
+        aria-label={title}
         title={title}
         onClick={onClick}
         className={`${styles.gateChip} ${size === 'sm' ? styles.gateChipSm : styles.gateChipMd} ${isNew ? styles.gateChipNew : ''}`}
@@ -34,6 +41,7 @@ export function GateChip({ type, size = 'md', onClick, isNew = false }) {
           fontSize: size === 'sm' ? 15 : 18,
           boxShadow: isNew ? `0 0 18px ${g.color}55` : 'none',
         }}
+        {...interactiveProps}
       >
         {label}
       </div>
@@ -43,8 +51,15 @@ export function GateChip({ type, size = 'md', onClick, isNew = false }) {
   // Single-qubit gates
   const g = GATES[type]
 
+  const interactiveProps = onClick ? {
+    role: 'button',
+    tabIndex: 0,
+    onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } },
+  } : {}
+
   return (
     <div
+      aria-label={`${g.name} gate`}
       onClick={onClick}
       className={`${styles.gateChip} ${size === 'sm' ? styles.gateChipSm : styles.gateChipMd} ${isNew ? styles.gateChipNew : ''}`}
       style={{
@@ -57,6 +72,7 @@ export function GateChip({ type, size = 'md', onClick, isNew = false }) {
         fontSize: size === 'sm' ? 13 : 15,
         boxShadow: isNew ? `0 0 18px ${g.color}55` : 'none',
       }}
+      {...interactiveProps}
     >
       {g.label}
     </div>

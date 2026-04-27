@@ -12,4 +12,5 @@ export {
 } from './stepByStep.utils'
 
 export { useFeatureDStepByStep } from './useFeatureDStepByStep'
+export { useStepByStepHandlers }  from './useStepByStepHandlers'
 export { StepByStepControls } from './components/StepByStepControls'

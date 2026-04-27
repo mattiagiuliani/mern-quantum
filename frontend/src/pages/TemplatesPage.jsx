@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, Form } from 'react-bootstrap'
 import { useAuth } from '../hooks/useAuth'
+import { ConfirmModal } from '../components/ConfirmModal'
 import {
   TEMPLATE_COPY,
   TEMPLATE_TABS,
@@ -30,12 +31,13 @@ export default function TemplatesPage() {
   useEffect(() => {
     if (!authLoading && !tabInitialized.current) {
       tabInitialized.current = true
-      if (user) setActiveTab('mine')
+      if (user) queueMicrotask(() => setActiveTab('mine'))
     }
   }, [authLoading, user])
   const [tagFilter, setTagFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editSeed, setEditSeed] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const {
     templatesByTab,
@@ -98,13 +100,16 @@ export default function TemplatesPage() {
     setActiveTab(nextTab)
   }
 
-  const handleDeleteTemplate = async (template) => {
+  const handleDeleteTemplate = (template) => {
     const templateId = template?._id ?? template?.id
     if (!templateId) return
+    setDeleteTarget(template)
+  }
 
-    const confirmed = window.confirm('Delete this template permanently?')
-    if (!confirmed) return
-
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    const templateId = deleteTarget._id ?? deleteTarget.id
+    setDeleteTarget(null)
     await deleteTemplate(templateId)
   }
 
@@ -296,6 +301,13 @@ export default function TemplatesPage() {
         saving={saving}
         defaultCircuit={defaultCircuit ? cloneCircuit(defaultCircuit) : null}
         initialValues={editSeed}
+      />
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete template?"
+        message="This action is permanent and cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </>
   )

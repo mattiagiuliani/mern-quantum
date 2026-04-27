@@ -12,7 +12,7 @@ describe('calculatePercentage', () => {
   })
 
   it('handles zero shots gracefully (no division by zero)', () => {
-    expect(calculatePercentage(5, 0)).toBe('500.0')
+    expect(calculatePercentage(5, 0)).toBe('0.0')
   })
 })
 

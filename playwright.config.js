@@ -18,10 +18,21 @@ export default defineConfig({
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
-  webServer: {
-    command: 'npm run dev:frontend',
-    port: 5173,
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      // Frontend dev server — serves the React SPA with VITE_API_URL → localhost:3001
+      command: 'npm run dev:frontend',
+      port: 5173,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // Real backend (MongoMemoryServer) for auth.real.e2e.js and any future real tests.
+      // Mocked tests (page.route) are unaffected whether this server is running or not.
+      command: 'node backend/server.e2e.js',
+      port: 3001,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 })

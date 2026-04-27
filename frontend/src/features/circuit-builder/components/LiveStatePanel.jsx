@@ -27,7 +27,10 @@ export function LiveStatePanel({ liveState, measurementLog }) {
           color: 'rgba(255,255,255,0.45)',
           marginBottom: 12,
         }}>
-          Live view of each qubit after your latest action.
+          Live view of each qubit after your latest action.{' '}
+          <span style={{ color: 'rgba(255,255,255,0.28)', fontStyle: 'italic' }}>
+            Uses a simplified qubit model for instant feedback — run the simulation for statistically accurate results.
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {liveState.map((q, i) => {

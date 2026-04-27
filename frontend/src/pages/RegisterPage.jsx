@@ -18,8 +18,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+      setError('Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a digit.')
       return
     }
 

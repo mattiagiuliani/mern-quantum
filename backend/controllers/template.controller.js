@@ -4,6 +4,9 @@ import Template from '../models/Template.model.js'
 import { ok, fail } from '../utils/respond.js'
 import logger from '../utils/logger.js'
 import { captureBackendError } from '../config/sentry.js'
+import { publicTemplatesCache } from '../utils/cache.js'
+
+const PUBLIC_CACHE_PREFIX = 'public:'
 
 /**
  * Normalize incoming payload into the persisted template shape.
@@ -62,6 +65,7 @@ export const createTemplate = async (req, res) => {
     if (!payload.name) return fail(res, 'Template name is required')
 
     const template = await Template.create({ ...payload, author: req.user.id })
+    if (payload.isPublic) publicTemplatesCache.invalidate(PUBLIC_CACHE_PREFIX)
     return ok(res, { template }, 201)
   } catch (err) {
     captureBackendError(err, { handler: 'createTemplate' })
@@ -113,7 +117,12 @@ export const getPublicTemplates = async (req, res) => {
     const tag   = typeof req.query.tag === 'string' ? req.query.tag.trim() : ''
     const page  = Math.max(1, parseInt(req.query.page)  || 1)
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20))
-    const skip  = (page - 1) * limit
+
+    const cacheKey = `${PUBLIC_CACHE_PREFIX}${tag}:${page}:${limit}`
+    const cached = publicTemplatesCache.get(cacheKey)
+    if (cached) return ok(res, cached)
+
+    const skip   = (page - 1) * limit
     const filter = { isPublic: true }
     if (tag) filter.tags = tag
 
@@ -127,7 +136,9 @@ export const getPublicTemplates = async (req, res) => {
       Template.countDocuments(filter),
     ])
 
-    return ok(res, { templates, total, page, pages: Math.ceil(total / limit) })
+    const payload = { templates, total, page, pages: Math.ceil(total / limit) }
+    publicTemplatesCache.set(cacheKey, payload)
+    return ok(res, payload)
   } catch (err) {
     captureBackendError(err, { handler: 'getPublicTemplates' })
     logger.error({ err }, '[getPublicTemplates]')
@@ -190,6 +201,7 @@ export const updateTemplate = async (req, res) => {
     template.isPublic = payload.isPublic
 
     await template.save()
+    publicTemplatesCache.invalidate(PUBLIC_CACHE_PREFIX)
     return ok(res, { template })
   } catch (err) {
     captureBackendError(err, { handler: 'updateTemplate' })
@@ -215,6 +227,7 @@ export const deleteTemplate = async (req, res) => {
     if (String(template.author) !== String(req.user.id)) return fail(res, 'Only owner can delete this template', 403)
 
     await template.deleteOne()
+    publicTemplatesCache.invalidate(PUBLIC_CACHE_PREFIX)
     return ok(res, { message: 'Template deleted' })
   } catch (err) {
     captureBackendError(err, { handler: 'deleteTemplate' })

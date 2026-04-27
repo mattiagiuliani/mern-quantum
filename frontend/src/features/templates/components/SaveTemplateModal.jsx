@@ -65,8 +65,10 @@ export function SaveTemplateModal({ open, onClose, onSubmit, defaultCircuit, sav
         </div>
 
         <Form.Group style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Form.Label style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.templateNameLabel}</Form.Label>
+          <Form.Label htmlFor="tmpl-name" style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.templateNameLabel}</Form.Label>
           <Form.Control
+            id="tmpl-name"
+            aria-required="true"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -77,8 +79,9 @@ export function SaveTemplateModal({ open, onClose, onSubmit, defaultCircuit, sav
         </Form.Group>
 
         <Form.Group style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Form.Label style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.templateDescriptionLabel}</Form.Label>
+          <Form.Label htmlFor="tmpl-description" style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.templateDescriptionLabel}</Form.Label>
           <Form.Control
+            id="tmpl-description"
             as="textarea"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -92,8 +95,9 @@ export function SaveTemplateModal({ open, onClose, onSubmit, defaultCircuit, sav
         </Form.Group>
 
         <Form.Group style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Form.Label style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.tagsLabel}</Form.Label>
+          <Form.Label htmlFor="tmpl-tags" style={TEMPLATE_FORM_LABEL_STYLE}>{TEMPLATE_COPY.tagsLabel}</Form.Label>
           <Form.Control
+            id="tmpl-tags"
             value={tagsRaw}
             onChange={(e) => setTagsRaw(e.target.value)}
             placeholder={TEMPLATE_COPY.tagsPlaceholder}
@@ -110,7 +114,7 @@ export function SaveTemplateModal({ open, onClose, onSubmit, defaultCircuit, sav
         />
 
         {error && (
-          <Alert variant="danger" style={TEMPLATE_ERROR_ALERT_STYLE}>
+          <Alert variant="danger" role="alert" aria-live="polite" style={TEMPLATE_ERROR_ALERT_STYLE}>
             {error}
           </Alert>
         )}

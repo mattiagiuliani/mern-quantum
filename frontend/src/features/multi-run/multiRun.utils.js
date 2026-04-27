@@ -8,6 +8,6 @@ export function resolveExecutedShots(apiShots, fallbackShots = DEFAULT_SHOTS) {
 }
 
 export function calculatePercentage(count, shots) {
-  const denominator = shots > 0 ? shots : 1
-  return ((count / denominator) * 100).toFixed(1)
+  if (shots <= 0) return '0.0'
+  return ((count / shots) * 100).toFixed(1)
 }

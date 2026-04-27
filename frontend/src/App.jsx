@@ -60,7 +60,6 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     captureFrontendError(error, { componentStack: info?.componentStack })
-    console.error('[ErrorBoundary]', error, info)
   }
 
   render() {

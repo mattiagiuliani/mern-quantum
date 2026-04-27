@@ -27,7 +27,7 @@ export function SaveModal({ open, draft, onDraftChange, onClose, onConfirm }) {
       </Modal.Header>
 
       <Modal.Body style={{ padding: '20px 24px' }}>
-        <Form.Label style={{
+        <Form.Label htmlFor="save-circuit-name" style={{
           fontSize: 10, letterSpacing: '0.15em', color: C.textMuted,
           textTransform: 'uppercase', display: 'block', marginBottom: 8,
           fontFamily: F.mono,
@@ -35,6 +35,8 @@ export function SaveModal({ open, draft, onDraftChange, onClose, onConfirm }) {
           Circuit name
         </Form.Label>
         <Form.Control
+          id="save-circuit-name"
+          aria-required="true"
           autoFocus
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}

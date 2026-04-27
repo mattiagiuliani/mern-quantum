@@ -32,12 +32,12 @@ beforeEach(async () => {
   await mongoose.connection.collections.users?.deleteMany({})
 })
 
-// --- /api/auth/register -------------------------------------------------------
+// --- /api/v1/auth/register -------------------------------------------------------
 
-describe('POST /api/auth/register', () => {
+describe('POST /api/v1/auth/register', () => {
   it('success', async () => {
     const res = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ username: 'alice', email: 'alice@example.com', password: 'Abcdef1!' })
       .expect(201)
     expect(res.body.success).toBe(true)
@@ -48,14 +48,14 @@ describe('POST /api/auth/register', () => {
 
   it('duplicate email returns 409', async () => {
     const payload = { username: 'bob', email: 'bob@example.com', password: 'Abcdef1!' }
-    await request(app).post('/api/auth/register').send(payload).expect(201)
-    const res = await request(app).post('/api/auth/register').send(payload).expect(409)
+    await request(app).post('/api/v1/auth/register').send(payload).expect(201)
+    const res = await request(app).post('/api/v1/auth/register').send(payload).expect(409)
     expect(res.body.success).toBe(false)
   })
 
   it('missing fields returns 400', async () => {
     const res = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ email: 'x@example.com' })
       .expect(400)
     expect(res.body.success).toBe(false)
@@ -63,23 +63,23 @@ describe('POST /api/auth/register', () => {
 
   it('weak password returns 400', async () => {
     const res = await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ username: 'carol', email: 'carol@example.com', password: '1234' })
       .expect(400)
     expect(res.body.success).toBe(false)
   })
 })
 
-// --- /api/auth/login ---------------------------------------------------------
+// --- /api/v1/auth/login ---------------------------------------------------------
 
-describe('POST /api/auth/login', () => {
+describe('POST /api/v1/auth/login', () => {
   it('success sets cookie + returns user', async () => {
     await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ username: 'dan', email: 'dan@example.com', password: 'Abcdef1!' })
       .expect(201)
     const res = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: 'dan@example.com', password: 'Abcdef1!' })
       .expect(200)
     expect(res.body.success).toBe(true)
@@ -90,21 +90,21 @@ describe('POST /api/auth/login', () => {
 
   it('wrong password returns 401', async () => {
     await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ username: 'eve', email: 'eve@example.com', password: 'Abcdef1!' })
     const res = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: 'eve@example.com', password: 'WrongPass1!' })
       .expect(401)
     expect(res.body.success).toBe(false)
   })
 })
 
-// --- /api/auth/logout --------------------------------------------------------
+// --- /api/v1/auth/logout --------------------------------------------------------
 
-describe('POST /api/auth/logout', () => {
+describe('POST /api/v1/auth/logout', () => {
   it('clears cookie', async () => {
-    const res = await request(app).post('/api/auth/logout').expect(200)
+    const res = await request(app).post('/api/v1/auth/logout').expect(200)
     expect(res.body.success).toBe(true)
     const cookies = res.headers['set-cookie'] ?? []
     const tokenCookie = cookies.find(c => c.startsWith('token='))
@@ -112,23 +112,23 @@ describe('POST /api/auth/logout', () => {
   })
 })
 
-// --- /api/auth/refresh -------------------------------------------------------
+// --- /api/v1/auth/refresh -------------------------------------------------------
 
-describe('POST /api/auth/refresh', () => {
+describe('POST /api/v1/auth/refresh', () => {
   it('issues new access token from refreshToken cookie', async () => {
     await request(app)
-      .post('/api/auth/register')
+      .post('/api/v1/auth/register')
       .send({ username: 'grace', email: 'grace@example.com', password: 'Abcdef1!' })
       .expect(201)
     const loginRes = await request(app)
-      .post('/api/auth/login')
+      .post('/api/v1/auth/login')
       .send({ email: 'grace@example.com', password: 'Abcdef1!' })
       .expect(200)
     const cookies = loginRes.headers['set-cookie']
     const refreshCookie = cookies.find(c => c.startsWith('refreshToken='))
     expect(refreshCookie).toBeTruthy()
     const refreshRes = await request(app)
-      .post('/api/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .set('Cookie', refreshCookie)
       .expect(200)
     expect(refreshRes.body.success).toBe(true)
@@ -137,7 +137,7 @@ describe('POST /api/auth/refresh', () => {
   })
 
   it('returns 401 with no refreshToken cookie', async () => {
-    const res = await request(app).post('/api/auth/refresh').expect(401)
+    const res = await request(app).post('/api/v1/auth/refresh').expect(401)
     expect(res.body.success).toBe(false)
   })
 })

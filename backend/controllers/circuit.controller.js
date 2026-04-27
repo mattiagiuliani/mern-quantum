@@ -56,6 +56,19 @@ export const runCircuit = (req, res) => {
  *
  * Returns the updated qubitStates array and, for M gates, the measurement value.
  *
+ * Design note — two physics models:
+ *   This endpoint uses the *pedagogical* simplified model (applyGateStep) that
+ *   represents each qubit as {value: 0|1, superposition: boolean}.  It powers
+ *   the step-by-step / live-state feature where immediate visual feedback
+ *   matters more than full quantum fidelity.
+ *
+ *   The POST /api/circuits/run endpoint uses a proper statevector simulation
+ *   (simulate() in quantum.service.js) with correct entanglement and amplitude
+ *   arithmetic.  That model drives the multi-shot results histogram.
+ *
+ *   Both models are intentional and serve different learning objectives.
+ *   See quantum.service.js → applyGateStep() for a detailed comparison.
+ *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {import('express').Response}

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/auth/me', async (route) => {
+  await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({
       status: 401,
       contentType: 'application/json',
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('register flow redirects to builder on success', async ({ page }) => {
-  await page.route('**/api/auth/register', async (route) => {
+  await page.route('**/api/v1/auth/register', async (route) => {
     await route.fulfill({
       status: 201,
       contentType: 'application/json',
@@ -33,7 +33,7 @@ test('register flow redirects to builder on success', async ({ page }) => {
 })
 
 test('login flow redirects to builder on success', async ({ page }) => {
-  await page.route('**/api/auth/login', async (route) => {
+  await page.route('**/api/v1/auth/login', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

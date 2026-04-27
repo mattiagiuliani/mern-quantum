@@ -1,8 +1,12 @@
+import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.model.js'
 import { ok, fail } from '../utils/respond.js'
 import logger from '../utils/logger.js'
 import { captureBackendError } from '../config/sentry.js'
+
+const hashToken = (token) =>
+  crypto.createHash('sha256').update(token).digest('hex')
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -27,25 +31,26 @@ const signRefreshToken = (userId) =>
  * @param {number} statusCode
  * @param {object} res
  */
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = async (user, statusCode, res) => {
   const accessToken  = signAccessToken(user._id)
   const refreshToken = signRefreshToken(user._id)
 
-  const secure = process.env.NODE_ENV === 'production'
+  await User.findByIdAndUpdate(user._id, { refreshTokenHash: hashToken(refreshToken) })
 
+  const secure = process.env.NODE_ENV === 'production'
   res
     .status(statusCode)
     .cookie('token', accessToken, {
       httpOnly: true,
       secure,
       sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 min
+      maxAge: 15 * 60 * 1000,
     })
     .cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure,
       sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     })
     .json({ success: true, user: user.toSafeObject() })
 }
@@ -53,7 +58,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // ─── controller ─────────────────────────────────────────────────────────────
 
 /**
- * POST /api/auth/register
+ * POST /api/v1/auth/register
  * Body: { username, email, password }
  *
  * @param {import('express').Request} req
@@ -75,7 +80,7 @@ export const register = async (req, res) => {
     if (existingUsername) return fail(res, 'Username already in use', 409)
 
     const user = await User.create({ username, email, password })
-    sendTokenResponse(user, 201, res)
+    await sendTokenResponse(user, 201, res)
   } catch (err) {
     captureBackendError(err, { handler: 'register' })
     if (err.name === 'ValidationError') {
@@ -88,7 +93,7 @@ export const register = async (req, res) => {
 }
 
 /**
- * POST /api/auth/login
+ * POST /api/v1/auth/login
  * Body: { email, password }
  *
  * @param {import('express').Request} req
@@ -106,10 +111,24 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password')
     if (!user) return fail(res, 'Invalid credentials', 401)
 
-    const isMatch = await user.comparePassword(password)
-    if (!isMatch) return fail(res, 'Invalid credentials', 401)
+    if (user.isLocked()) {
+      const retryAfterSecs = Math.ceil((user.lockUntil - Date.now()) / 1000)
+      res.set('Retry-After', String(retryAfterSecs))
+      return fail(res, 'Account temporarily locked. Too many failed attempts.', 429)
+    }
 
-    sendTokenResponse(user, 200, res)
+    const isMatch = await user.comparePassword(password)
+    if (!isMatch) {
+      await user.incrementLoginAttempts()
+      return fail(res, 'Invalid credentials', 401)
+    }
+
+    // Reset lockout on successful login
+    if (user.loginAttempts > 0) {
+      await user.updateOne({ $set: { loginAttempts: 0 }, $unset: { lockUntil: 1 } })
+    }
+
+    await sendTokenResponse(user, 200, res)
   } catch (err) {
     captureBackendError(err, { handler: 'login' })
     logger.error({ err }, '[login]')
@@ -118,7 +137,7 @@ export const login = async (req, res) => {
 }
 
 /**
- * POST /api/auth/logout
+ * POST /api/v1/auth/logout
  * Clears both access and refresh token cookies.
  *
  * @param {import('express').Request} req
@@ -126,6 +145,15 @@ export const login = async (req, res) => {
  * @returns {Promise<import('express').Response>}
  */
 export const logout = async (req, res) => {
+  const token = req.cookies?.refreshToken
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET)
+      await User.findByIdAndUpdate(decoded.id, { $unset: { refreshTokenHash: 1 } })
+    } catch {
+      // Token expired or invalid — proceed to clear cookies regardless
+    }
+  }
   const secure = process.env.NODE_ENV === 'production'
   res
     .status(200)
@@ -135,7 +163,7 @@ export const logout = async (req, res) => {
 }
 
 /**
- * POST /api/auth/refresh
+ * POST /api/v1/auth/refresh
  * Issues a new access token using the refreshToken cookie.
  *
  * @param {import('express').Request} req
@@ -147,21 +175,33 @@ export const refresh = async (req, res) => {
   if (!token) return fail(res, 'No refresh token', 401)
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_REFRESH_SECRET,
-    )
-    const user = await User.findById(decoded.id)
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET)
+    const user = await User.findById(decoded.id).select('+refreshTokenHash')
     if (!user) return fail(res, 'User not found', 401)
 
+    // Reject if token was invalidated (e.g. after logout or rotation)
+    if (user.refreshTokenHash !== hashToken(token)) {
+      return fail(res, 'Invalid or expired refresh token', 401)
+    }
+
     const accessToken = signAccessToken(user._id)
+    const newRefreshToken = signRefreshToken(user._id)
+    await User.findByIdAndUpdate(user._id, { refreshTokenHash: hashToken(newRefreshToken) })
+
+    const secure = process.env.NODE_ENV === 'production'
     res
       .status(200)
       .cookie('token', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure,
         sameSite: 'strict',
         maxAge: 15 * 60 * 1000,
+      })
+      .cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure,
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
       })
       .json({ success: true })
   } catch {
@@ -170,7 +210,7 @@ export const refresh = async (req, res) => {
 }
 
 /**
- * GET /api/auth/me
+ * GET /api/v1/auth/me
  * Richiede il middleware protect — req.user.id è già verificato.
  *
  * @param {import('express').Request} req

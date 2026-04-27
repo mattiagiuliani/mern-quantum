@@ -10,6 +10,9 @@ export function GatePaletteButton({ type, selected, onClick }) {
       onClick={() => onClick(type)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-pressed={selected}
+      aria-label={`${g.name} gate`}
+      type="button"
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         padding: '14px 18px',

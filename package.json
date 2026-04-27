@@ -1,6 +1,9 @@
 {
   "private": true,
-  "workspaces": ["frontend", "backend"],
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
@@ -9,9 +12,17 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "prepare": "[ -d .git ] && husky || true"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{js,jsx}": [
+      "npx --prefix frontend eslint --fix --max-warnings=0 --config frontend/eslint.config.js"
+    ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   }
 }

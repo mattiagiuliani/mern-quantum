@@ -28,11 +28,11 @@ beforeAll(async () => {
 
   // Register + login a test user once
   await request(app)
-    .post('/api/auth/register')
+    .post('/api/v1/auth/register')
     .send({ username: 'quser', email: 'quser@example.com', password: 'Abcdef1!' })
 
   const loginRes = await request(app)
-    .post('/api/auth/login')
+    .post('/api/v1/auth/login')
     .send({ email: 'quser@example.com', password: 'Abcdef1!' })
 
   authCookie = loginRes.headers['set-cookie'][0]
@@ -47,12 +47,12 @@ beforeEach(async () => {
   await mongoose.connection.collections.circuits?.deleteMany({})
 })
 
-// --- POST /api/circuits -------------------------------------------------------
+// --- POST /api/v1/circuits -------------------------------------------------------
 
-describe('POST /api/circuits', () => {
+describe('POST /api/v1/circuits', () => {
   it('saves a circuit', async () => {
     const res = await request(app)
-      .post('/api/circuits')
+      .post('/api/v1/circuits')
       .set('Cookie', authCookie)
       .send({ name: 'Bell State', circuitMatrix: emptyMatrix })
       .expect(201)
@@ -63,7 +63,7 @@ describe('POST /api/circuits', () => {
 
   it('requires auth', async () => {
     const res = await request(app)
-      .post('/api/circuits')
+      .post('/api/v1/circuits')
       .send({ name: 'Test', circuitMatrix: emptyMatrix })
       .expect(401)
     expect(res.body.success).toBe(false)
@@ -72,7 +72,7 @@ describe('POST /api/circuits', () => {
   it('rejects oversized circuit', async () => {
     const bigMatrix = Array.from({ length: 20 }, () => Array(20).fill(null))
     const res = await request(app)
-      .post('/api/circuits')
+      .post('/api/v1/circuits')
       .set('Cookie', authCookie)
       .send({ name: 'Too Big', circuitMatrix: bigMatrix })
       .expect(400)
@@ -80,16 +80,16 @@ describe('POST /api/circuits', () => {
   })
 })
 
-// --- GET /api/circuits/mine ---------------------------------------------------
+// --- GET /api/v1/circuits/mine ---------------------------------------------------
 
-describe('GET /api/circuits/mine', () => {
+describe('GET /api/v1/circuits/mine', () => {
   it('returns saved circuits', async () => {
-    await request(app).post('/api/circuits').set('Cookie', authCookie)
+    await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
       .send({ name: 'Circuit A', circuitMatrix: emptyMatrix })
-    await request(app).post('/api/circuits').set('Cookie', authCookie)
+    await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
       .send({ name: 'Circuit B', circuitMatrix: emptyMatrix })
 
-    const res = await request(app).get('/api/circuits/mine').set('Cookie', authCookie).expect(200)
+    const res = await request(app).get('/api/v1/circuits/mine').set('Cookie', authCookie).expect(200)
     expect(res.body.success).toBe(true)
     expect(Array.isArray(res.body.circuits)).toBe(true)
     expect(res.body.circuits.length).toBeGreaterThanOrEqual(2)
@@ -97,11 +97,11 @@ describe('GET /api/circuits/mine', () => {
 
   it('pagination works', async () => {
     for (let i = 0; i < 5; i++) {
-      await request(app).post('/api/circuits').set('Cookie', authCookie)
+      await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
         .send({ name: `Circuit ${i}`, circuitMatrix: emptyMatrix })
     }
     const page1 = await request(app)
-      .get('/api/circuits/mine?page=1&limit=2')
+      .get('/api/v1/circuits/mine?page=1&limit=2')
       .set('Cookie', authCookie)
       .expect(200)
     expect(page1.body.circuits.length).toBe(2)
@@ -110,56 +110,56 @@ describe('GET /api/circuits/mine', () => {
   })
 })
 
-// --- PUT /api/circuits/:id ---------------------------------------------------
+// --- PUT /api/v1/circuits/:id ---------------------------------------------------
 
-describe('PUT /api/circuits/:id', () => {
+describe('PUT /api/v1/circuits/:id', () => {
   it('updates circuit name', async () => {
-    const createRes = await request(app).post('/api/circuits').set('Cookie', authCookie)
+    const createRes = await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
       .send({ name: 'Old Name', circuitMatrix: emptyMatrix }).expect(201)
     const id = createRes.body.circuit._id
 
-    const updateRes = await request(app).put(`/api/circuits/${id}`)
+    const updateRes = await request(app).put(`/api/v1/circuits/${id}`)
       .set('Cookie', authCookie).send({ name: 'New Name' }).expect(200)
     expect(updateRes.body.success).toBe(true)
     expect(updateRes.body.circuit.name).toBe('New Name')
   })
 
   it("cannot update another user's circuit", async () => {
-    const createRes = await request(app).post('/api/circuits').set('Cookie', authCookie)
+    const createRes = await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
       .send({ name: 'Mine', circuitMatrix: emptyMatrix }).expect(201)
     const id = createRes.body.circuit._id
 
-    await request(app).post('/api/auth/register')
+    await request(app).post('/api/v1/auth/register')
       .send({ username: 'hacker', email: 'hacker@example.com', password: 'Abcdef1!' })
-    const hackerLogin = await request(app).post('/api/auth/login')
+    const hackerLogin = await request(app).post('/api/v1/auth/login')
       .send({ email: 'hacker@example.com', password: 'Abcdef1!' })
     const hackerCookie = hackerLogin.headers['set-cookie'][0]
 
-    const res = await request(app).put(`/api/circuits/${id}`)
+    const res = await request(app).put(`/api/v1/circuits/${id}`)
       .set('Cookie', hackerCookie).send({ name: 'Hijacked' }).expect(403)
     expect(res.body.success).toBe(false)
   })
 })
 
-// --- DELETE /api/circuits/:id ------------------------------------------------
+// --- DELETE /api/v1/circuits/:id ------------------------------------------------
 
-describe('DELETE /api/circuits/:id', () => {
+describe('DELETE /api/v1/circuits/:id', () => {
   it('deletes own circuit', async () => {
-    const createRes = await request(app).post('/api/circuits').set('Cookie', authCookie)
+    const createRes = await request(app).post('/api/v1/circuits').set('Cookie', authCookie)
       .send({ name: 'ToDelete', circuitMatrix: emptyMatrix }).expect(201)
     const id = createRes.body.circuit._id
 
-    const deleteRes = await request(app).delete(`/api/circuits/${id}`)
+    const deleteRes = await request(app).delete(`/api/v1/circuits/${id}`)
       .set('Cookie', authCookie).expect(200)
     expect(deleteRes.body.success).toBe(true)
 
-    const mineRes = await request(app).get('/api/circuits/mine').set('Cookie', authCookie).expect(200)
+    const mineRes = await request(app).get('/api/v1/circuits/mine').set('Cookie', authCookie).expect(200)
     expect(mineRes.body.circuits.find(c => c._id === id)).toBeFalsy()
   })
 
   it('404 for nonexistent id', async () => {
     const fakeId = new mongoose.Types.ObjectId().toString()
-    const res = await request(app).delete(`/api/circuits/${fakeId}`)
+    const res = await request(app).delete(`/api/v1/circuits/${fakeId}`)
       .set('Cookie', authCookie).expect(404)
     expect(res.body.success).toBe(false)
   })

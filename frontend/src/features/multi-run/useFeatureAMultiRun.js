@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { runCircuit as apiRunCircuit } from '../../api/apiClient'
+import { captureFrontendError } from '../../config/sentry'
 import { DEFAULT_SHOTS } from './multiRun.constants'
 import { resolveExecutedShots } from './multiRun.utils'
 
@@ -22,7 +23,7 @@ export function useFeatureAMultiRun() {
       setLastExecutedShots(resolveExecutedShots(shots, selectedShots))
       setRunStatus('done')
     } catch (err) {
-      console.error('[handleRun]', err)
+      captureFrontendError(err, { context: 'handleRun' })
       setRunStatus('error')
     }
   }, [selectedShots])

@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from 'vitest'
+﻿import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createTemplate,
   deleteTemplate,
@@ -7,6 +7,7 @@ import {
   updateTemplate,
 } from './template.controller.js'
 import Template from '../models/Template.model.js'
+import { publicTemplatesCache } from '../utils/cache.js'
 
 function createRes() {
   return {
@@ -37,10 +38,10 @@ describe('createTemplate', () => {
 })
 
 describe('getPublicTemplates', () => {
+  beforeEach(() => { publicTemplatesCache.clear() })
+
   it('returns 500 on model error', async () => {
-    const originalFind        = Template.find
-    const originalConsoleError = console.error
-    console.error = () => {}
+    const originalFind = Template.find
     Template.find = () => { throw new Error('boom') }
     try {
       const req = { query: {} }
@@ -50,7 +51,42 @@ describe('getPublicTemplates', () => {
       expect(res.body.success).toBe(false)
     } finally {
       Template.find = originalFind
-      console.error = originalConsoleError
+    }
+  })
+
+  it('returns cached response on second call without hitting the DB', async () => {
+    let dbCalls = 0
+    const originalFind = Template.find
+    Template.find = () => {
+      dbCalls++
+      return { populate() { return this }, sort() { return this }, skip() { return this }, limit() { return this }, lean: async () => [] }
+    }
+    const originalCount = Template.countDocuments
+    Template.countDocuments = async () => 0
+
+    try {
+      const req = { query: {} }
+      await getPublicTemplates(req, createRes())  // cold — hits DB
+      await getPublicTemplates(req, createRes())  // warm — served from cache
+      expect(dbCalls).toBe(1)
+    } finally {
+      Template.find = originalFind
+      Template.countDocuments = originalCount
+    }
+  })
+
+  it('invalidates cache when a public template is created', async () => {
+    publicTemplatesCache.set('public::1:20', { templates: [], total: 0, page: 1, pages: 0 })
+    expect(publicTemplatesCache.size).toBe(1)
+
+    const originalCreate = Template.create
+    Template.create = async (data) => ({ ...data, _id: 'new-id' })
+    try {
+      const req = { body: { name: 'Bell', circuit: [[null]], tags: [], isPublic: true }, user: { id: 'u1' } }
+      await createTemplate(req, createRes())
+      expect(publicTemplatesCache.size).toBe(0)
+    } finally {
+      Template.create = originalCreate
     }
   })
 })

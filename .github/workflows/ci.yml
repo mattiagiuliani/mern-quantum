@@ -6,8 +6,20 @@ on:
   pull_request:
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for secrets (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-and-build:
     runs-on: ubuntu-latest
+    needs: secret-scan
 
     steps:
       - name: Checkout
@@ -23,7 +35,10 @@ jobs:
         run: npm install
 
       - name: Backend unit tests
-        run: npx vitest run backend/controllers/auth.controller.test.js backend/controllers/circuit.controller.test.js backend/controllers/template.controller.test.js backend/services/quantum.service.test.js
+        run: npx vitest run backend/controllers/auth.controller.test.js backend/controllers/circuit.controller.test.js backend/controllers/template.controller.test.js backend/services/quantum.service.test.js backend/routes/auth.routes.test.js backend/routes/circuit.routes.test.js
+
+      - name: Frontend lint
+        run: npm run lint --workspace=frontend
 
       - name: Frontend tests
         run: npm run test:frontend
@@ -31,8 +46,62 @@ jobs:
       - name: Frontend build
         run: npm run build --workspace=frontend
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
 
-      - name: E2E tests (Chromium)
-        run: npx playwright test --project=chromium
+      - name: E2E tests (Chromium, Firefox, WebKit)
+        run: npx playwright test
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    # Only publish on pushes to main/master, not on PRs
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image metadata (backend)
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+
+      - name: Set image metadata (frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/frontend
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
