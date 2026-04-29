@@ -1,4 +1,5 @@
-const DEFAULT_TTL_MS = 15 * 60 * 1000  // 15 minutes
+const DEFAULT_TTL_MS  = 15 * 60 * 1000  // 15 minutes
+const DEFAULT_MAX_SIZE = 1_000
 
 /**
  * Simple in-process TTL cache backed by a Map.
@@ -7,6 +8,16 @@ const DEFAULT_TTL_MS = 15 * 60 * 1000  // 15 minutes
 class TtlCache {
   /** @type {Map<string, {value: unknown, expiresAt: number}>} */
   #store = new Map()
+  #maxSize
+
+  /**
+   * @param {object} [opts]
+   * @param {number} [opts.maxSize=1000] Maximum number of live entries. Oldest-inserted
+   *   entry is evicted (FIFO) when the limit is reached.
+   */
+  constructor({ maxSize = DEFAULT_MAX_SIZE } = {}) {
+    this.#maxSize = maxSize
+  }
 
   /**
    * @param {string} key
@@ -28,6 +39,10 @@ class TtlCache {
    * @param {number} [ttlMs]
    */
   set(key, value, ttlMs = DEFAULT_TTL_MS) {
+    if (this.#store.size >= this.#maxSize) {
+      // Evict oldest (first inserted) — FIFO
+      this.#store.delete(this.#store.keys().next().value)
+    }
     this.#store.set(key, { value, expiresAt: Date.now() + ttlMs })
   }
 

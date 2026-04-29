@@ -88,6 +88,9 @@ export function createApp() {
   // so the browser doesn't log a 404 or a CSP violation.
   app.get('/.well-known/appspecific/com.chrome.devtools.json', (_req, res) => res.json([]))
 
+  // Liveness / readiness probe — used by the Docker healthcheck and load balancers.
+  app.get('/api/v1/health', (_req, res) => res.json({ ok: true, uptime: process.uptime() }))
+
   // Machine-readable OpenAPI 3.1 spec
   app.get('/api/v1/openapi.json', (_req, res) => res.json(openApiSpec))
 

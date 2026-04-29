@@ -7,6 +7,17 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/test/**', 'src/main.jsx'],
+      thresholds: {
+        lines:     80,
+        functions: 80,
+        branches:  75,
+      },
+    },
   },
   build: {
     rollupOptions: {

@@ -3,7 +3,14 @@
  * Used by circuit.controller.js and Circuit.model.js to avoid duplication.
  */
 
-const VALID_SINGLE_GATES = new Set(['H', 'X', 'M'])
+// NOTE on size limits vs. the frontend:
+// The backend intentionally accepts larger circuits than the frontend UI builds:
+//   backend : MAX_QUBITS=10, MAX_STEPS=16
+//   frontend: NUM_QUBITS=3,  MAX_STEPS=8
+// The API must accommodate circuits imported from templates or external tools;
+// the frontend limits exist solely for a manageable UX surface.
+
+const VALID_SINGLE_GATES = new Set(['H', 'X', 'M', 'S'])
 const MAX_QUBITS         = 10
 const MAX_STEPS          = 16
 

@@ -11,9 +11,9 @@ const hashToken = (token) =>
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Crea e firma un JWT con l'id utente.
+ * Create and sign a JWT access token for the given user ID.
  * @param {string} userId
- * @returns {string} token firmato
+ * @returns {string} signed token
  */
 const signAccessToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -26,8 +26,8 @@ const signRefreshToken = (userId) =>
   })
 
 /**
- * Imposta il cookie HttpOnly con il token e risponde con i dati utente.
- * @param {object} user  - documento Mongoose
+ * Set HttpOnly cookies with the access/refresh tokens and respond with user data.
+ * @param {object} user  - Mongoose document
  * @param {number} statusCode
  * @param {object} res
  */

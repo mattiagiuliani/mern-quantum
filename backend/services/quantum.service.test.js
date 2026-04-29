@@ -86,4 +86,97 @@ describe('simulate -- CNOT', () => {
     expect(keys.every(k => k === '00' || k === '11')).toBe(true)
     expect((result.counts['00'] ?? 0) + (result.counts['11'] ?? 0)).toBe(1024)
   })
+
+  it('GHZ state: H + CNOT(0→1) + CNOT(0→2) + M produces only 000 or 111', () => {
+    const circuit = [
+      ['H', { gate: 'CNOT', role: 'ctrl', partner: 1 }, null,                                    'M'],
+      [null, { gate: 'CNOT', role: 'tgt',  partner: 0 }, { gate: 'CNOT', role: 'ctrl', partner: 2 }, 'M'],
+      [null, null,                                         { gate: 'CNOT', role: 'tgt',  partner: 1 }, 'M'],
+    ]
+    const result = simulate(circuit, 1024)
+    expect(result.shots).toBe(1024)
+    const keys = Object.keys(result.counts)
+    expect(keys.every(k => k === '000' || k === '111')).toBe(true)
+    expect((result.counts['000'] ?? 0) + (result.counts['111'] ?? 0)).toBe(1024)
+  })
+})
+
+// --- simulate -- H² idempotency ----------------------------------------------
+
+describe('simulate -- H\u00b2 idempotency', () => {
+  it('H applied twice returns qubit to |0\u27e9 with certainty', () => {
+    // H|0\u27e9 = |+\u27e9, H|+\u27e9 = |0\u27e9 — deterministic after double Hadamard
+    const circuit = [['H', 'H', 'M']]
+    const result = simulate(circuit, 64)
+    expect(result.counts['0']).toBe(64)
+    expect(result.counts['1']).toBeUndefined()
+  })
+
+  it('H applied twice to |1\u27e9 returns qubit to |1\u27e9 with certainty', () => {
+    // X puts qubit in |1\u27e9, then H\u00b2 returns to |1\u27e9
+    const circuit = [['X', 'H', 'H', 'M']]
+    const result = simulate(circuit, 64)
+    expect(result.counts['1']).toBe(64)
+    expect(result.counts['0']).toBeUndefined()
+  })
+})
+
+// --- simulate -- S gate ------------------------------------------------------
+
+describe('simulate -- S gate', () => {
+  it('S on |0\u27e9 leaves state unchanged (phase on |0\u27e9 amplitude has no observable effect)', () => {
+    const circuit = [['S', 'M']]
+    const result = simulate(circuit, 32)
+    expect(result.counts['0']).toBe(32)
+  })
+
+  it('S on |1\u27e9 leaves measurement unchanged (phase on |1\u27e9 is not observable alone)', () => {
+    const circuit = [['X', 'S', 'M']]
+    const result = simulate(circuit, 32)
+    expect(result.counts['1']).toBe(32)
+  })
+
+  it('S\u00b2 = Z: H \u2192 S \u2192 S \u2192 H produces |1\u27e9 (H\u00b7Z\u00b7H = X)', () => {
+    // The sequence H-S-S-H is equivalent to H-Z-H = X, so |0\u27e9 \u2192 |1\u27e9
+    const circuit = [['H', 'S', 'S', 'H', 'M']]
+    const result = simulate(circuit, 64)
+    expect(result.counts['1']).toBe(64)
+    expect(result.counts['0']).toBeUndefined()
+  })
+})
+
+// --- simulate -- norm conservation -------------------------------------------
+
+describe('simulate -- norm conservation (physical invariant)', () => {
+  it('X gate preserves total probability', () => {
+    // X is unitary: measurement outcome must sum to 100% over enough shots
+    const circuit = [['X', 'M']]
+    const result = simulate(circuit, 512)
+    const total = Object.values(result.counts).reduce((a, b) => a + b, 0)
+    expect(total).toBe(512)
+  })
+
+  it('H gate preserves total probability', () => {
+    const circuit = [['H', 'M']]
+    const result = simulate(circuit, 512)
+    const total = Object.values(result.counts).reduce((a, b) => a + b, 0)
+    expect(total).toBe(512)
+  })
+
+  it('CNOT gate preserves total probability', () => {
+    const circuit = [
+      [{ gate: 'CNOT', role: 'ctrl', partner: 1 }, 'M'],
+      [{ gate: 'CNOT', role: 'tgt',  partner: 0 }, 'M'],
+    ]
+    const result = simulate(circuit, 512)
+    const total = Object.values(result.counts).reduce((a, b) => a + b, 0)
+    expect(total).toBe(512)
+  })
+
+  it('S gate preserves total probability', () => {
+    const circuit = [['H', 'S', 'M']]
+    const result = simulate(circuit, 512)
+    const total = Object.values(result.counts).reduce((a, b) => a + b, 0)
+    expect(total).toBe(512)
+  })
 })

@@ -9,7 +9,7 @@ export const initialLiveState = () => Array.from({ length: NUM_QUBITS }, () => (
 /** Returns true for any valid gate cell value (string gate, CNOT object, or null) */
 export const isValidGate = (gate) => {
   if (gate === null) return true
-  if (gate === 'H' || gate === 'X' || gate === 'M') return true
+  if (gate === 'H' || gate === 'X' || gate === 'M' || gate === 'S') return true
   if (gate && typeof gate === 'object' && gate.gate === 'CNOT'
       && (gate.role === 'ctrl' || gate.role === 'tgt')
       && typeof gate.partner === 'number') return true

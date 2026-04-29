@@ -3,7 +3,7 @@ import User from '../models/User.model.js'
 
 // ─── in-memory user cache ─────────────────────────────────────────────────────
 // Avoids one DB round-trip per authenticated request.
-// TTL: 60 s · Max entries: 500 (LRU eviction by insertion order)
+// TTL: 60 s · Max entries: 500 (FIFO eviction — oldest-inserted entry is dropped first)
 
 const USER_CACHE_TTL_MS = 60_000
 const USER_CACHE_MAX    = 500
@@ -49,7 +49,7 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    // Verifica firma e scadenza
+    // Verify JWT signature and expiry
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
     // Check cache first; fall back to DB (handles deleted accounts)

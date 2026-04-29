@@ -48,6 +48,12 @@ export function applyGateStep(val, sup, gate) {
     const v = sup ? (Math.random() < 0.5 ? 0 : 1) : val
     return [v, false, v]
   }
+  if (gate === 'S') {
+    // Phase gate: S|0⟩=|0⟩, S|1⟩=i|1⟩.
+    // Phase is not observable in the simplified {value, superposition} model,
+    // so the state is left unchanged here. Use simulate() for phase-sensitive results.
+    return [val, sup, null]
+  }
   return [val, sup, null]
 }
 
@@ -107,6 +113,25 @@ function applyX(sv, n, q) {
     temp = sv[idx_i + 1]
     sv[idx_i + 1] = sv[idx_j + 1]
     sv[idx_j + 1] = temp
+  }
+}
+
+/**
+ * Apply Phase (S) gate to qubit q: |0⟩ → |0⟩, |1⟩ → i|1⟩
+ * Multiplies the |1⟩ amplitude by i: (re + i·im) * i = -im + i·re
+ */
+function applyS(sv, n, q) {
+  const size = 1 << n
+  const step = 1 << (q + 1)
+
+  for (let i = 0; i < size; i += step) {
+    const j   = i + (1 << q)
+    const idx = 2 * j
+    // Multiply by i: re → -im, im → re
+    const re     = sv[idx]
+    const im     = sv[idx + 1]
+    sv[idx]     = -im
+    sv[idx + 1] =  re
   }
 }
 
@@ -241,6 +266,7 @@ export function simulate(circuit, shots = 1024) {
         if (typeof cell === 'string') {
           if (cell === 'H') applyH(sv, numQubits, q)
           else if (cell === 'X') applyX(sv, numQubits, q)
+          else if (cell === 'S') applyS(sv, numQubits, q)
           else if (cell === 'M') measureQubit(sv, numQubits, q)
         } else if (typeof cell === 'object' && cell.gate === 'CNOT' && cell.role === 'ctrl') {
           applyCNOT(sv, numQubits, q, cell.partner)

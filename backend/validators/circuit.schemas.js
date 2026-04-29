@@ -4,6 +4,7 @@ const gateSchema = z.union([
   z.literal('H'),
   z.literal('X'),
   z.literal('M'),
+  z.literal('S'),
   z.literal('CNOT'),
   z.null(),
 ])
@@ -33,7 +34,7 @@ export const runCircuitSchema = z.object({
 export const applyGateSchema = z
   .object({
     qubitStates: z.array(qubitStateSchema).min(1, 'qubitStates must contain at least one item'),
-    gate: z.union([z.literal('H'), z.literal('X'), z.literal('M'), z.literal('CNOT')]),
+    gate: z.union([z.literal('H'), z.literal('X'), z.literal('M'), z.literal('S'), z.literal('CNOT')]),
     qubitIndex: z.coerce.number().int().optional(),
     controlIndex: z.coerce.number().int().optional(),
     targetIndex: z.coerce.number().int().optional(),

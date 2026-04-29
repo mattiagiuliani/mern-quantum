@@ -30,18 +30,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: '**/package-lock.json'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Backend unit tests
-        run: npx vitest run backend/controllers/auth.controller.test.js backend/controllers/circuit.controller.test.js backend/controllers/template.controller.test.js backend/services/quantum.service.test.js backend/routes/auth.routes.test.js backend/routes/circuit.routes.test.js
+      - name: Dependency vulnerability audit
+        run: npm audit --audit-level=high
+
+      - name: Backend unit tests + coverage enforcement
+        run: npm run test:coverage --workspace=backend
 
       - name: Frontend lint
         run: npm run lint --workspace=frontend
 
-      - name: Frontend tests
-        run: npm run test:frontend
+      - name: Frontend unit tests + coverage enforcement
+        run: npm run test:coverage --workspace=frontend
 
       - name: Frontend build
         run: npm run build --workspace=frontend

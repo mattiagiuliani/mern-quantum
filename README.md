@@ -4,8 +4,10 @@
 
 **Interactive Quantum Circuit Simulator — Full-Stack Capstone Project**
 
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-77%20passed-4ade80?style=flat-square&logo=vitest&logoColor=white)](./backend)
+[![CI](https://github.com/mattiagiuliani/mern-quantum/actions/workflows/ci.yml/badge.svg)](https://github.com/mattiagiuliani/mern-quantum/actions/workflows/ci.yml)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-136%20passed-4ade80?style=flat-square&logo=vitest&logoColor=white)](./backend)
 [![Frontend Tests](https://img.shields.io/badge/frontend%20tests-55%20passed-4ade80?style=flat-square&logo=vitest&logoColor=white)](./frontend)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%8580%25-4ade80?style=flat-square&logo=vitest&logoColor=white)](./backend)
 [![E2E Tests](https://img.shields.io/badge/E2E-Playwright-1d4ed8?style=flat-square&logo=playwright&logoColor=white)](./e2e)
 [![Node](https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)](https://react.dev)
@@ -69,7 +71,7 @@ The application is designed with two complementary goals:
 | Feature | Description |
 |---|---|
 | **Circuit Canvas** | Interactive drag-free gate placement on a qubit/time-step grid |
-| **Gate Library** | H (Hadamard), X (Pauli-NOT), M (Measurement), CNOT (entanglement) |
+| **Gate Library** | H (Hadamard), X (Pauli-NOT), S (Phase), M (Measurement), CNOT (entanglement) |
 | **Step-by-Step Mode** | Gate-by-gate or time-step-by-time-step execution with live qubit state panel |
 | **Auto-Play** | Configurable interval auto-advancement through the step queue |
 | **Multi-Shot Simulation** | Statevector simulation with configurable shots (preset: 128 / 512 / 1024) |
@@ -95,7 +97,7 @@ mern-quantum/
 │   ├── services/             Business logic (quantum simulation)
 │   ├── models/               Mongoose schemas (User, Circuit, Template)
 │   ├── routes/               Express routers
-│   ├── middleware/           Auth guard (LRU cache), rate limit, Zod validation
+│   ├── middleware/           Auth guard (FIFO cache), rate limit, Zod validation
 │   ├── validators/           Zod schemas for all request bodies
 │   ├── config/               DB connection, Sentry
 │   ├── utils/                Logger (Pino), respond helpers
@@ -124,7 +126,7 @@ mern-quantum/
 │
 └── docs/
     ├── ui-sketch.html        Interactive UI wireframe with API map
-    └── screenshots/          (add your screenshots here)
+    └── screenshots/          circuit-builder, results, step-by-step, swagger, templates
 ```
 
 **Data flow:**
@@ -170,7 +172,7 @@ Browser → nginx (:80) → /api/* → Express (:3001) → MongoDB
 
 | Tool | Scope |
 |---|---|
-| Vitest + Supertest | Backend unit + integration (77 tests) |
+| Vitest + Supertest | Backend unit + integration (136 tests) |
 | Vitest + @testing-library/react | Frontend unit + hooks (55 tests) |
 | Playwright | E2E cross-browser (Chrome, Firefox, Safari) |
 | ESLint | Linting with react-hooks + react-refresh plugins |
@@ -192,7 +194,7 @@ The application addresses the relevant OWASP Top 10 categories:
 | **Sensitive Data Exposure** | `password` field excluded from all API responses; bcrypt cost 10 |
 | **CORS** | Explicit allowlist via `CORS_ORIGIN` env var; `credentials: true` |
 | **Password Policy** | Minimum 8 characters, at least one uppercase, one lowercase, one digit — validated both client-side and server-side (Zod regex) |
-| **Auth Cache** | LRU token verification cache (TTL 60 s, max 500 entries) to reduce DB load without stale-token risk |
+| **Auth Cache** | FIFO token verification cache (TTL 60 s, max 500 entries) to reduce DB load without stale-token risk |
 
 ---
 
@@ -213,7 +215,7 @@ Known approximations (by design):
 
 Uses `Float64Array` of length `2 × 2ⁿ` storing `[re₀, im₀, re₁, im₁, …]`. Implements correct unitary gate application and measurement collapse. Produces accurate probability distributions for multi-shot runs.
 
-Gates implemented: H (Hadamard), X (Pauli-X), M (projective measurement with Born-rule collapse), CNOT (two-qubit controlled-NOT with full entanglement).
+Gates implemented: H (Hadamard), X (Pauli-X), S (Phase — multiplies |1⟩ amplitude by i), M (projective measurement with Born-rule collapse), CNOT (two-qubit controlled-NOT with full entanglement).
 
 > The UI notes this distinction in the Live State Panel: _"Uses a simplified qubit model for instant feedback — run the simulation for statistically accurate results."_
 
@@ -293,7 +295,7 @@ With the backend running, open **http://localhost:3001/api/v1/docs**
 #### Unit + Integration
 
 ```bash
-# Backend — 77 tests (controllers, services, routes, middleware)
+# Backend — 136 tests (controllers, services, routes, middleware)
 npm run test:backend
 
 # Frontend — 55 tests (hooks, utils, components)
@@ -399,10 +401,21 @@ docker compose down
 ```
 
 The stack:
-- **backend** container: Node.js API on port 3001
+- **backend** container: Node.js API on port 3001 (not published to the host — reachable only through nginx)
 - **frontend** container: nginx on port 80, proxies `/api/` to backend
 
-nginx also serves the React SPA with SPA fallback (`try_files $uri /index.html`) and adds `Strict-Transport-Security` headers.
+nginx serves the React SPA with SPA fallback (`try_files $uri /index.html`). HSTS and TLS are handled by the external reverse proxy (Traefik, Caddy, etc.) in front of this stack.
+
+#### Development override
+
+A `docker-compose.override.yml` is included that re-exposes port 3001 for local development and sets `NODE_ENV=development`. It is automatically loaded by `docker compose up` but **not** by `docker compose -f docker-compose.yml up` (production).
+
+#### Production Secrets
+
+For production deployments, do not pass secrets via `.env` files checked into version control. Use one of:
+- [Docker Secrets](https://docs.docker.com/engine/swarm/secrets/) (Swarm mode)
+- A secrets manager (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault)
+- CI/CD injected environment variables (GitHub Actions `secrets`, Railway, Render)
 
 ---
 
@@ -423,7 +436,7 @@ mern-quantum/
 │   │   ├── circuit.controller.js run / applyGate / CRUD
 │   │   └── template.controller.js CRUD + public listing
 │   ├── middleware/
-│   │   ├── auth.middleware.js    JWT verify + LRU cache
+│   │   ├── auth.middleware.js    JWT verify + FIFO user cache
 │   │   ├── perf.js               Request timing logger
 │   │   └── validate.js           Zod middleware factory
 │   ├── models/
@@ -479,7 +492,7 @@ mern-quantum/
 │
 ├── docs/
 │   ├── ui-sketch.html            Interactive wireframe + API map
-│   └── screenshots/              (place screenshots here)
+│   └── screenshots/              circuit-builder, results, step-by-step, swagger, templates
 │
 ├── playwright.config.js          Two webServers: frontend + e2e backend
 ├── docker-compose.yml
@@ -597,7 +610,7 @@ Browser → nginx (:80) → /api/* → Express (:3001) → MongoDB
 
 | Strumento | Scope |
 |---|---|
-| Vitest + Supertest | Backend unit + integration (77 test) |
+| Vitest + Supertest | Backend unit + integration (136 test) |
 | Vitest + @testing-library/react | Frontend unit + hooks (55 test) |
 | Playwright | E2E cross-browser (Chrome, Firefox, Safari) |
 | ESLint | Linting con plugin react-hooks + react-refresh |
@@ -619,7 +632,7 @@ L'applicazione affronta le categorie rilevanti dell'OWASP Top 10:
 | **Sensitive Data Exposure** | Campo `password` escluso da tutte le risposte API; bcrypt cost 10 |
 | **CORS** | Lista consentiti esplicita via env var `CORS_ORIGIN`; `credentials: true` |
 | **Password Policy** | Minimo 8 caratteri, almeno una maiuscola, una minuscola, una cifra — validato sia lato client (regex) che server (Zod) |
-| **Auth Cache** | Cache LRU verifica token (TTL 60 s, max 500 voci) per ridurre carico DB senza rischio token stale |
+| **Auth Cache** | Cache FIFO verifica token (TTL 60 s, max 500 voci) per ridurre carico DB senza rischio token stale |
 
 ---
 
@@ -640,7 +653,7 @@ Approssimazioni note (per design):
 
 Usa `Float64Array` di lunghezza `2 × 2ⁿ` che memorizza `[re₀, im₀, re₁, im₁, …]`. Implementa applicazione gate unitaria corretta e collasso della misurazione. Produce distribuzioni di probabilità accurate per esecuzioni multi-shot.
 
-Gate implementati: H (Hadamard), X (Pauli-X), M (misurazione proiettiva con collasso Born-rule), CNOT (NOT controllato a due qubit con entanglement completo).
+Gate implementati: H (Hadamard), X (Pauli-X), S (Phase — moltiplica l'ampiezza |1⟩ per i), M (misurazione proiettiva con collasso Born-rule), CNOT (NOT controllato a due qubit con entanglement completo).
 
 ---
 
@@ -718,7 +731,7 @@ Con il backend avviato, apri **http://localhost:3001/api/v1/docs**
 #### Unit + Integration
 
 ```bash
-# Backend — 77 test (controller, service, route, middleware)
+# Backend — 136 test (controller, service, route, middleware)
 npm run test:backend
 
 # Frontend — 55 test (hook, utils, componenti)

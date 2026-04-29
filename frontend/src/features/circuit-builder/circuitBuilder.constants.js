@@ -1,7 +1,11 @@
-import { TOKENS } from '../../styles/tokens'
+﻿import { TOKENS } from '../../styles/tokens'
 
 const { colors: C, fonts: F, radius: R } = TOKENS
 
+// NOTE on size limits vs. the backend:
+// The frontend enforces smaller dimensions than the backend validation allows:
+//   frontend: NUM_QUBITS=3, MAX_STEPS=8  (UX constraint -- keeps the grid manageable)
+//   backend:  MAX_QUBITS=10, MAX_STEPS=16 (API limit -- accommodates imported templates)
 export const NUM_QUBITS = 3
 export const MAX_STEPS  = 8
 
@@ -29,6 +33,14 @@ export const GATES = {
     color: C.yellow,
     bg: 'rgba(252,211,77,0.12)',
     border: 'rgba(252,211,77,0.5)',
+  },
+  S: {
+    label: 'S',
+    name: 'Phase (S)',
+    desc: 'Applies a +90° phase rotation to |1⟩. Phase is not directly observable but enables interference effects.',
+    color: C.purple,
+    bg: 'rgba(167,139,250,0.12)',
+    border: 'rgba(167,139,250,0.5)',
   },
   CNOT: {
     label: 'CX',

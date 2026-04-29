@@ -6,7 +6,7 @@ import logger from '../utils/logger.js'
 import { isValidCircuitMatrix } from '../utils/circuitValidation.js'
 import { captureBackendError } from '../config/sentry.js'
 
-const ALLOWED_SINGLE_GATES = new Set(['H', 'X', 'M'])
+const ALLOWED_SINGLE_GATES = new Set(['H', 'X', 'M', 'S'])
 
 
 
