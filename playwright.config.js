@@ -1,11 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const isCI = !!process.env.CI
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: ['**/*.e2e.js'],
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  timeout: isCI ? 60_000 : 30_000,
+  expect: { timeout: isCI ? 10_000 : 5_000 },
   fullyParallel: true,
+  workers: isCI ? 2 : undefined,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',
@@ -23,7 +26,7 @@ export default defineConfig({
       // Frontend dev server — serves the React SPA with VITE_API_URL → localhost:3001
       command: 'npm run dev:frontend',
       port: 5173,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !isCI,
       timeout: 120_000,
     },
     {
@@ -31,8 +34,8 @@ export default defineConfig({
       // Mocked tests (page.route) are unaffected whether this server is running or not.
       command: 'node backend/server.e2e.js',
       port: 3001,
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
+      reuseExistingServer: !isCI,
+      timeout: 120_000,
     },
   ],
 })
