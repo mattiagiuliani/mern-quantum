@@ -7,8 +7,9 @@ export default defineConfig({
   testMatch: ['**/*.e2e.js'],
   timeout: isCI ? 60_000 : 30_000,
   expect: { timeout: isCI ? 10_000 : 5_000 },
-  fullyParallel: true,
-  workers: isCI ? 2 : undefined,
+  fullyParallel: !isCI,
+  workers: isCI ? 1 : undefined,
+  retries: isCI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',
