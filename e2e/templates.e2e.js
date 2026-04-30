@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test'
 
+const TEMPLATE_LOAD_TIMEOUT_MS = 10_000
+
+function isPublicTemplatesResponse(response) {
+  return response.request().method() === 'GET' && response.url().includes('/api/v1/templates/public')
+}
+
 const templatePayload = {
   success: true,
   templates: [
@@ -35,8 +41,13 @@ test('templates page loads public templates list', async ({ page }) => {
     })
   })
 
+  const templatesResponsePromise = page.waitForResponse(isPublicTemplatesResponse)
   await page.goto('/templates')
+
+  const templatesResponse = await templatesResponsePromise
+  expect(templatesResponse.ok()).toBeTruthy()
+
   await expect(page.getByTestId('templates-page')).toBeVisible()
   await expect(page.getByTestId('templates-filter-input')).toBeVisible()
-  await expect(page.getByText('Bell Demo')).toBeVisible()
+  await expect(page.getByText('Bell Demo')).toBeVisible({ timeout: TEMPLATE_LOAD_TIMEOUT_MS })
 })
