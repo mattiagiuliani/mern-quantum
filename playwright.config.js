@@ -23,8 +23,11 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Frontend dev server — serves the React SPA with VITE_API_URL → localhost:3001
-      command: 'npm run dev:frontend',
+      // In CI: serve the already-built production bundle (no on-demand Vite compilation).
+      // Locally: use the dev server with HMR.
+      command: isCI
+        ? 'cd frontend && npx vite preview --port 5173 --host'
+        : 'npm run dev:frontend',
       port: 5173,
       reuseExistingServer: !isCI,
       timeout: 120_000,
