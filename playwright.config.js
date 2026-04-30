@@ -9,7 +9,7 @@ export default defineConfig({
   expect: { timeout: isCI ? 15_000 : 5_000 },
   fullyParallel: !isCI,
   workers: isCI ? 1 : undefined,
-  retries: isCI ? 2 : 0,
+  retries: isCI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',

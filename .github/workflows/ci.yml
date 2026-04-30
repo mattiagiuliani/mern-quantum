@@ -38,6 +38,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache MongoMemoryServer binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-memory-server
+          key: mongodb-memory-server-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            mongodb-memory-server-${{ runner.os }}-
+
       - name: Dependency vulnerability audit
         run: npm audit --audit-level=high
 
@@ -55,6 +63,10 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
+
+      - name: Pre-download MongoMemoryServer binary
+        run: node --input-type=module -e "import { MongoMemoryServer } from 'mongodb-memory-server'; const s = await MongoMemoryServer.create(); await s.stop(); console.log('MongoDB binary ready');"
+        working-directory: backend
 
       - name: E2E tests (Chromium, Firefox, WebKit)
         run: npx playwright test
