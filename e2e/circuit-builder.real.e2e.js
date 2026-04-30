@@ -9,26 +9,34 @@
  */
 import { test, expect } from '@playwright/test'
 
-const uid  = Date.now().toString(36)
-const USER = {
-  username: `cb_${uid}`,
-  email:    `cb_${uid}@example.com`,
-  password: 'Abcdef1!',
+const API_BASE = process.env.PW_API_BASE_URL ?? 'http://localhost:3001/api/v1'
+const uid = Date.now().toString(36)
+
+function makeUser(testId) {
+  const suffix = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+  const prefix = `cb_${testId}`.slice(0, 30 - 1 - suffix.length)
+  const id = `${prefix}_${suffix}`
+  return {
+    username: id,
+    email: `${id}@example.com`,
+    password: 'Abcdef1!',
+  }
 }
 
-// ─── Shared setup: register once, login before each test ─────────────────────
+// ─── Shared setup: per-test user registration + login ────────────────────────
 
-test.beforeAll(async ({ request }) => {
-  await request.post('/api/v1/auth/register', {
-    data: { username: USER.username, email: USER.email, password: USER.password },
+test.beforeEach(async ({ page }, testInfo) => {
+  const user = makeUser(testInfo.title.replace(/\W+/g, '_').toLowerCase())
+
+  const res = await page.request.post(`${API_BASE}/auth/register`, {
+    data: { username: user.username, email: user.email, password: user.password },
   })
-})
+  if (!res.ok()) throw new Error(`Registration failed: ${res.status()} ${await res.text()}`)
 
-test.beforeEach(async ({ page }) => {
-  // Login via the UI to populate the auth cookie
+  // Login via the UI to populate the auth cookie.
   await page.goto('/login')
-  await page.getByTestId('login-email').fill(USER.email)
-  await page.getByTestId('login-password').fill(USER.password)
+  await page.getByTestId('login-email').fill(user.email)
+  await page.getByTestId('login-password').fill(user.password)
   await page.getByTestId('login-submit').click()
   await expect(page).toHaveURL(/\/circuit-builder/, { timeout: 10_000 })
 })

@@ -11,7 +11,7 @@ function getHoverStyle(selectedGate) {
   return { bg: g.bg, border: g.border }
 }
 
-export function Cell({ gate, selectedGate, onClick, isNew = false, isFocused = false, isPending = false }) {
+export function Cell({ gate, selectedGate, onClick, isNew = false, isFocused = false, isPending = false, testId }) {
   const [hovered, setHovered] = useState(false)
   const isEmpty = !gate
 
@@ -23,6 +23,7 @@ export function Cell({ gate, selectedGate, onClick, isNew = false, isFocused = f
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      data-testid={testId}
       className={`${styles.cell} ${isEmpty ? styles.cellEmpty : ''} ${isFocused ? styles.cellFocused : ''} ${isPending ? styles.cellPending : ''}`}
       style={{
         background: isEmpty

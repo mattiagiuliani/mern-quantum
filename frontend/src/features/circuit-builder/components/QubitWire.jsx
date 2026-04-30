@@ -73,6 +73,7 @@ export function QubitWire({ qubitIndex, steps, selectedGate, onCellClick, onCell
                 isNew={animatingCells.has(`${qubitIndex}-${stepIdx}`)}
                 isFocused={focusedCell?.qubit === qubitIndex && focusedCell?.step === stepIdx}
                 isPending={isPending}
+                testId={`circuit-cell-${qubitIndex}-${stepIdx}`}
                 onClick={() => gate
                   ? onCellClear(qubitIndex, stepIdx)
                   : onCellClick(qubitIndex, stepIdx)

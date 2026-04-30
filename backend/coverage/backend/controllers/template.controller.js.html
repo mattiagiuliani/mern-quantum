@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">97.24% </span>
+                <span class="strong">99.08% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>106/109</span>
+                <span class='fraction'>108/109</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88.52% </span>
+                <span class="strong">95.08% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>54/61</span>
+                <span class='fraction'>58/61</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.73% </span>
+                <span class="strong">98.91% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>89/92</span>
+                <span class='fraction'>91/92</span>
             </div>
         
             
@@ -333,13 +333,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -350,7 +350,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-yes">18x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -456,21 +456,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -572,9 +572,9 @@ function normalizePayload(body = {}) {
 function getRequesterIdFromCookie(req) {
   try {
     const token = req.cookies?.token
-    <span class="missing-if-branch" title="else path not taken" >E</span>if (!token) return null
-    const decoded = <span class="cstat-no" title="statement not covered" >jwt.verify(token, process.env.JWT_SECRET)</span>
-<span class="cstat-no" title="statement not covered" >    return decoded.id ?? null</span>
+    if (!token) return null
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    return decoded.id ?? <span class="branch-1 cbranch-no" title="branch not covered" >null</span>
   } catch {
 <span class="cstat-no" title="statement not covered" >    return null</span>
   }
@@ -703,7 +703,7 @@ export const getTemplateById = async (req, res) =&gt; {
     if (!template) return fail(res, 'Template not found', 404)
 &nbsp;
     const requesterId = req.user?.id ?? getRequesterIdFromCookie(req)
-    const isOwner = requesterId &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >String(template.author?._id ?? template.author) === String(requesterId)</span>
+    const isOwner = requesterId &amp;&amp; String(template.author?._id ?? <span class="branch-1 cbranch-no" title="branch not covered" >template.author)</span> === String(requesterId)
 &nbsp;
     if (!template.isPublic &amp;&amp; !isOwner) return fail(res, 'Access denied', 403)
 &nbsp;
@@ -781,7 +781,7 @@ export const deleteTemplate = async (req, res) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-29T11:44:42.908Z
+                at 2026-04-30T09:13:22.574Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

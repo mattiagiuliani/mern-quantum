@@ -56,8 +56,15 @@ api.interceptors.response.use(null, async (error) => {
   const url     = error.config?.url ?? ''
   const isRetry = error.config?._retry
 
-  // Don't intercept auth probes or already-retried requests
-  if (status !== 401 || url.includes('/auth/me') || url.includes('/auth/refresh') || isRetry) {
+  const isAuthEndpoint =
+    url.includes('/auth/me') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/login') ||
+    url.includes('/auth/register') ||
+    url.includes('/auth/logout')
+
+  // Don't intercept explicit auth endpoints or already-retried requests.
+  if (status !== 401 || isAuthEndpoint || isRetry) {
     return Promise.reject(error)
   }
 

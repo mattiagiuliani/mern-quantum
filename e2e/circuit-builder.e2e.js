@@ -36,7 +36,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('builder page renders gate palette and run controls', async ({ page }) => {
-  await expect(page.getByText('Builder')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Builder' })).toBeVisible()
   await expect(page.getByText('Hadamard')).toBeVisible()
   await expect(page.getByText('Measure')).toBeVisible()
   await expect(page.getByTestId('builder-run-panel')).toBeVisible()

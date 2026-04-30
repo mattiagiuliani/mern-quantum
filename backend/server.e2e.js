@@ -21,7 +21,7 @@ process.env.JWT_SECRET         ??= 'e2e-test-jwt-secret-32-chars-min!!'
 process.env.JWT_REFRESH_SECRET ??= 'e2e-test-refresh-secret-32chars!!'
 process.env.JWT_EXPIRES_IN     ??= '15m'
 process.env.CORS_ORIGIN        ??= 'http://localhost:5173'
-process.env.NODE_ENV           ??= 'test'
+process.env.NODE_ENV            = 'test'
 
 const PORT = Number(process.env.PORT) || 3001
 

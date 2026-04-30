@@ -9,7 +9,7 @@
  * 5. Bug regression: appliedRef is NOT marked when the user cancels.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 // We need to control navigation — keep a reference to the mock
@@ -89,13 +89,15 @@ describe('useTemplateLoader — template loading', () => {
     })
   })
 
-  it('sets pendingLoad when circuit has gates', () => {
+  it('sets pendingLoad when circuit has gates', async () => {
     const { result, applyTemplateCircuit } = renderLoader(
       gatedCircuit(),
       { templateToApply: TEMPLATE },
     )
 
-    expect(result.current.pendingLoad).not.toBeNull()
+    await waitFor(() => {
+      expect(result.current.pendingLoad).not.toBeNull()
+    })
     expect(result.current.pendingLoad.message).toMatch(/template/i)
     // template NOT applied yet
     expect(applyTemplateCircuit).not.toHaveBeenCalled()
@@ -107,13 +109,18 @@ describe('useTemplateLoader — template loading', () => {
       { templateToApply: TEMPLATE },
     )
 
+    await waitFor(() => {
+      expect(result.current.pendingLoad).not.toBeNull()
+    })
+
     await act(async () => {
       result.current.confirmLoad()
     })
 
-    expect(result.current.pendingLoad).toBeNull()
-    await Promise.resolve()
-    expect(applyTemplateCircuit).toHaveBeenCalledWith(TEMPLATE.circuit)
+    await waitFor(() => {
+      expect(result.current.pendingLoad).toBeNull()
+      expect(applyTemplateCircuit).toHaveBeenCalledWith(TEMPLATE.circuit)
+    })
   })
 
   it('cancelLoad does NOT apply template and clears pendingLoad', async () => {
@@ -122,13 +129,18 @@ describe('useTemplateLoader — template loading', () => {
       { templateToApply: TEMPLATE },
     )
 
+    await waitFor(() => {
+      expect(result.current.pendingLoad).not.toBeNull()
+    })
+
     await act(async () => {
       result.current.cancelLoad()
     })
 
-    expect(result.current.pendingLoad).toBeNull()
-    await Promise.resolve()
-    expect(applyTemplateCircuit).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(result.current.pendingLoad).toBeNull()
+      expect(applyTemplateCircuit).not.toHaveBeenCalled()
+    })
   })
 })
 
@@ -153,13 +165,15 @@ describe('useTemplateLoader — saved circuit loading', () => {
     })
   })
 
-  it('sets pendingLoad when circuit has gates', () => {
+  it('sets pendingLoad when circuit has gates', async () => {
     const { result } = renderLoader(
       gatedCircuit(),
       { savedCircuitToLoad: SAVED },
     )
 
-    expect(result.current.pendingLoad).not.toBeNull()
+    await waitFor(() => {
+      expect(result.current.pendingLoad).not.toBeNull()
+    })
     expect(result.current.pendingLoad.message).toMatch(/saved circuit/i)
   })
 })

@@ -47,6 +47,7 @@ export function CircuitBuilderHeader({
             onClick={onSave}
             disabled={saveStatus === 'saving'}
             variant="outline-success"
+            data-testid="builder-save-button"
             style={{
               ...BUILDER_BUTTON_STYLE_TOKENS.headerBase,
               color:       saveStatus === 'saved' ? '#6EE7D0' : saveStatus === 'error' ? '#FCA5A5' : 'rgba(110,231,208,0.85)',

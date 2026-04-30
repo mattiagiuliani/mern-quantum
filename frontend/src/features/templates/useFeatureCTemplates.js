@@ -63,11 +63,22 @@ export function useFeatureCTemplates(isAuthenticated) {
   }, [isAuthenticated])
 
   useEffect(() => {
-    loadTemplates().catch(() => {
-      setLoading(false)
-      setPublicTemplates([])
-      setMyTemplates([])
+    let cancelled = false
+
+    queueMicrotask(() => {
+      if (cancelled) return
+
+      loadTemplates().catch(() => {
+        if (cancelled) return
+        setLoading(false)
+        setPublicTemplates([])
+        setMyTemplates([])
+      })
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [loadTemplates])
 
   useEffect(() => {
@@ -79,7 +90,9 @@ export function useFeatureCTemplates(isAuthenticated) {
     const existsInExamples = EXAMPLE_TEMPLATES.some((entry) => (entry._id ?? entry.id) === selectedId)
 
     if (!existsInMine && !existsInPublic && !existsInExamples) {
-      setSelectedTemplate(null)
+      queueMicrotask(() => {
+        setSelectedTemplate(null)
+      })
     }
   }, [myTemplates, publicTemplates, selectedTemplate, setSelectedTemplate])
 

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     fileParallelism: false,   // prevent MongoMemoryServer port conflicts between test files
-    hookTimeout: 30000, // 30 seconds for beforeAll/afterAll
+    hookTimeout: 120000, // allow slower MongoMemoryServer startup/download in CI
     testTimeout: 10000,  // 10 seconds for individual tests
     coverage: {
       provider: 'v8',

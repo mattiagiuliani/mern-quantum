@@ -85,7 +85,11 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    if (!authLoading && user) load(page)
+    if (authLoading || !user) return
+
+    queueMicrotask(() => {
+      load(page)
+    })
   }, [authLoading, user, load, page])
 
   const handleLoad = useCallback((circuit) => {
@@ -103,7 +107,6 @@ export default function DashboardPage() {
     try {
       await deleteCircuit(id)
       // reload current page; if last item on page > 1, go back one page
-      const newTotal = total - 1
       const targetPage = circuits.length === 1 && page > 1 ? page - 1 : page
       setPage(targetPage)
       if (targetPage === page) load(page)
@@ -112,7 +115,7 @@ export default function DashboardPage() {
     } finally {
       setDeletingId(null)
     }
-  }, [confirmDeleteId])
+  }, [confirmDeleteId, circuits.length, page, load])
 
   if (authLoading || (loading && !circuits.length)) {
     return (

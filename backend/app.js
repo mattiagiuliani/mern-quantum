@@ -35,24 +35,26 @@ function userAwareKey(req) {
   return ipKeyGenerator(req)
 }
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many attempts. Please try again later.' },
-})
-
-const simulationLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
-  keyGenerator: userAwareKey,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, message: 'Too many simulation requests. Slow down.' },
-})
-
 export function createApp() {
+  const isTestEnv = process.env.NODE_ENV === 'test'
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isTestEnv ? 1000 : 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many attempts. Please try again later.' },
+  })
+
+  const simulationLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: isTestEnv ? 2000 : 30,
+    keyGenerator: userAwareKey,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many simulation requests. Slow down.' },
+  })
+
   const app = express()
 
   // Required for express-rate-limit to read the real client IP when behind nginx/proxy

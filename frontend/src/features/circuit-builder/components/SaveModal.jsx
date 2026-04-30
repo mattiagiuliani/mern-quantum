@@ -38,6 +38,7 @@ export function SaveModal({ open, draft, onDraftChange, onClose, onConfirm }) {
           id="save-circuit-name"
           aria-required="true"
           autoFocus
+          data-testid="save-circuit-name-input"
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') onConfirm() }}
@@ -65,6 +66,7 @@ export function SaveModal({ open, draft, onDraftChange, onClose, onConfirm }) {
           variant="outline-info"
           onClick={onConfirm}
           disabled={!draft.trim()}
+          data-testid="save-circuit-confirm"
           style={{ fontFamily: F.mono, fontSize: 11, color: C.teal, borderColor: C.tealFaint }}
         >
           Save

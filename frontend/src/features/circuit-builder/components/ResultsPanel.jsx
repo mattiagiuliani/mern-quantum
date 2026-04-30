@@ -6,7 +6,7 @@ import { calculatePercentage } from '../../multi-run/index'
  */
 export function ResultsPanel({ results, lastExecutedShots, savedCircuitName, circuit, onViewFull }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(110,231,208,0.2)', borderRadius: 14, padding: '20px', animation: 'fadeIn 0.5s ease both' }}>
+    <div data-testid="results-panel" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(110,231,208,0.2)', borderRadius: 14, padding: '20px', animation: 'fadeIn 0.5s ease both' }}>
       <div style={{ fontSize: 10, letterSpacing: '0.15em', color: '#6EE7D0', textTransform: 'uppercase', marginBottom: 16 }}>
         {'Results · ' + lastExecutedShots + ' shots'}
       </div>
