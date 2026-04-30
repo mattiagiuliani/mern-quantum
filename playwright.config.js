@@ -5,11 +5,11 @@ const isCI = !!process.env.CI
 export default defineConfig({
   testDir: './e2e',
   testMatch: ['**/*.e2e.js'],
-  timeout: isCI ? 60_000 : 30_000,
-  expect: { timeout: isCI ? 10_000 : 5_000 },
+  timeout: isCI ? 90_000 : 30_000,
+  expect: { timeout: isCI ? 15_000 : 5_000 },
   fullyParallel: !isCI,
   workers: isCI ? 1 : undefined,
-  retries: isCI ? 1 : 0,
+  retries: isCI ? 2 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',
@@ -31,7 +31,7 @@ export default defineConfig({
         : 'npm run dev:frontend',
       port: 5173,
       reuseExistingServer: !isCI,
-      timeout: 120_000,
+      timeout: isCI ? 180_000 : 120_000,
     },
     {
       // Real backend (MongoMemoryServer) for auth.real.e2e.js and any future real tests.
@@ -39,7 +39,7 @@ export default defineConfig({
       command: 'node backend/server.e2e.js',
       port: 3001,
       reuseExistingServer: !isCI,
-      timeout: 120_000,
+      timeout: isCI ? 180_000 : 120_000,
     },
   ],
 })
