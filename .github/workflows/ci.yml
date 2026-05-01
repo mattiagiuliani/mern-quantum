@@ -43,7 +43,7 @@ jobs:
         id: mongodb-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/mongodb-memory-server
+          path: ~/.cache/mongodb-binaries
           key: mongodb-memory-server-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             mongodb-memory-server-${{ runner.os }}-
