@@ -62,6 +62,7 @@ jobs:
         run: npm run build --workspace=frontend
 
       - name: Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
@@ -69,7 +70,12 @@ jobs:
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
+
+      - name: Install Playwright system dependencies (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
 
       - name: Pre-download MongoMemoryServer binary
         run: node --input-type=module -e "import { MongoMemoryServer } from 'mongodb-memory-server'; const s = await MongoMemoryServer.create(); await s.stop(); console.log('MongoDB binary ready');"
