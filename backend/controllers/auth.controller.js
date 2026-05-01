@@ -60,6 +60,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
 /**
  * POST /api/v1/auth/register
  * Body: { username, email, password }
+ * Validation is handled upstream by the Zod middleware (registerSchema).
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -69,19 +70,16 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body
 
-    if (!username || !email || !password) {
-      return fail(res, 'Username, email and password are required')
-    }
-
-    const existingEmail = await User.findOne({ email: email.toLowerCase() })
-    if (existingEmail) return fail(res, 'Email already in use', 409)
-
-    const existingUsername = await User.findOne({ username })
-    if (existingUsername) return fail(res, 'Username already in use', 409)
-
+    // Skip pre-flight uniqueness queries — rely on the unique indexes instead.
+    // A concurrent duplicate will produce an E11000 error caught below, avoiding
+    // the TOCTOU race that two separate findOne() calls would introduce.
     const user = await User.create({ username, email, password })
     await sendTokenResponse(user, 201, res)
   } catch (err) {
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern ?? {})[0] ?? 'field'
+      return fail(res, `${field} already in use`, 409)
+    }
     captureBackendError(err, { handler: 'register' })
     if (err.name === 'ValidationError') {
       const messages = Object.values(err.errors).map((e) => e.message)
@@ -104,6 +102,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
+    // Guard prevents TypeError from email.toLowerCase() when Zod middleware is bypassed.
     if (!email || !password) {
       return fail(res, 'Email and password are required')
     }
@@ -211,20 +210,10 @@ export const refresh = async (req, res) => {
 
 /**
  * GET /api/v1/auth/me
- * Richiede il middleware protect — req.user.id è già verificato.
+ * Requires the protect middleware — req.user is already verified and cached.
  *
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<import('express').Response|void>}
+ * @returns {import('express').Response}
  */
-export const getMe = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id)
-    if (!user) return fail(res, 'User not found', 404)
-    return ok(res, { user: user.toSafeObject() })
-  } catch (err) {
-    captureBackendError(err, { handler: 'getMe' })
-    logger.error({ err }, '[getMe]')
-    return fail(res, 'Internal server error', 500)
-  }
-}
+export const getMe = (req, res) => ok(res, { user: req.user })

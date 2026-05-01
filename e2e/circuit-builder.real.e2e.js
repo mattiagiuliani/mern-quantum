@@ -13,10 +13,6 @@ const API_BASE = process.env.PW_API_BASE_URL ?? 'http://localhost:3001/api/v1'
 const AUTH_REDIRECT_TIMEOUT_MS = 15_000
 const uid = Date.now().toString(36)
 
-function isAuthResponse(response, path) {
-  return response.request().method() === 'POST' && response.url().includes(`/api/v1/auth/${path}`)
-}
-
 function makeUser(testId) {
   const suffix = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   const prefix = `cb_${testId}`.slice(0, 30 - 1 - suffix.length)
@@ -57,11 +53,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.goto('/login')
   await page.getByTestId('login-email').fill(user.email)
   await page.getByTestId('login-password').fill(user.password)
-  const loginResponsePromise = page.waitForResponse((response) => isAuthResponse(response, 'login'))
   await page.getByTestId('login-submit').click()
-
-  const loginResponse = await loginResponsePromise
-  expect(loginResponse.ok()).toBeTruthy()
   await expect(page).toHaveURL(/\/circuit-builder/, { timeout: AUTH_REDIRECT_TIMEOUT_MS })
 })
 

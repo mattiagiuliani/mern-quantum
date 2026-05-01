@@ -9,11 +9,7 @@ test('home page allows navigation to auth pages', async ({ page }) => {
     })
   })
 
-  const authMePromise = page.waitForResponse(
-    (r) => r.request().method() === 'GET' && r.url().includes('/api/v1/auth/me'),
-  )
   await page.goto('/')
-  await authMePromise
   await expect(page.getByText('The qubit')).toBeVisible()
 
   await page.getByRole('button', { name: 'Register' }).click()

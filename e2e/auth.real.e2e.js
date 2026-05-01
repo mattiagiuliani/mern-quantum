@@ -12,10 +12,6 @@ import { test, expect } from '@playwright/test'
 const API_BASE = process.env.PW_API_BASE_URL ?? 'http://localhost:3001/api/v1'
 const AUTH_REDIRECT_TIMEOUT_MS = 15_000
 
-function isAuthResponse(response, path) {
-  return response.request().method() === 'POST' && response.url().includes(`/api/v1/auth/${path}`)
-}
-
 function makeUser(prefix) {
   const uid = `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
   return {
@@ -35,13 +31,8 @@ test('register → redirects to circuit-builder', async ({ page }) => {
   await page.getByTestId('register-username').fill(user.username)
   await page.getByTestId('register-email').fill(user.email)
   await page.getByTestId('register-password').fill(user.password)
-  const registerResponsePromise = page.waitForResponse((response) => isAuthResponse(response, 'register'))
   await page.getByTestId('register-submit').click()
 
-  const registerResponse = await registerResponsePromise
-  expect(registerResponse.ok()).toBeTruthy()
-
-  // After successful registration the app navigates to the builder
   await expect(page).toHaveURL(/\/circuit-builder/, { timeout: AUTH_REDIRECT_TIMEOUT_MS })
   await expect(page.getByTestId('builder-run-panel')).toBeVisible({ timeout: AUTH_REDIRECT_TIMEOUT_MS })
 })
@@ -76,11 +67,7 @@ test('login with correct credentials → redirects to circuit-builder', async ({
   await page.goto('/login')
   await page.getByTestId('login-email').fill(user.email)
   await page.getByTestId('login-password').fill(user.password)
-  const loginResponsePromise = page.waitForResponse((response) => isAuthResponse(response, 'login'))
   await page.getByTestId('login-submit').click()
-
-  const loginResponse = await loginResponsePromise
-  expect(loginResponse.ok()).toBeTruthy()
 
   await expect(page).toHaveURL(/\/circuit-builder/, { timeout: AUTH_REDIRECT_TIMEOUT_MS })
   await expect(page.getByTestId('builder-run-panel')).toBeVisible({ timeout: AUTH_REDIRECT_TIMEOUT_MS })

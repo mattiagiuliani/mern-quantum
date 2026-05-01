@@ -39,9 +39,22 @@ export function useCircuitGates({
   const [focusedCell,  setFocusedCell]  = useState(null)
   const [selectedOpId, setSelectedOpId] = useState(null)
   const [lastAddedOpId, setLastAddedOpId] = useState(null)
-  const circuitRef = useRef(circuit)
+  const circuitRef    = useRef(circuit)
+  const opCounterRef  = useRef(0)
+  // Tracks pending animation timeouts so they can be cancelled on unmount.
+  const animTimers    = useRef(new Set())
 
   useEffect(() => { circuitRef.current = circuit }, [circuit])
+
+  useEffect(() => () => animTimers.current.forEach(clearTimeout), [])
+
+  const scheduleAnimCleanup = useCallback((cleanup) => {
+    const t = setTimeout(() => {
+      cleanup()
+      animTimers.current.delete(t)
+    }, 400)
+    animTimers.current.add(t)
+  }, [])
 
   const applyTemplateCircuit = useCallback((incomingCircuit) => {
     const norm = normalizeTemplateCircuit(incomingCircuit)
@@ -94,7 +107,7 @@ export function useCircuitGates({
 
       if (ctrl.qubit === qubitIdx && ctrl.step === stepIdx) return
 
-      // Different qubit same column → reassign control
+      // Same qubit or different column → reassign control (CNOT needs different qubit, same step)
       if (ctrl.qubit === qubitIdx || ctrl.step !== stepIdx) {
         setCnotPending({ qubit: qubitIdx, step: stepIdx })
         setFocusedCell({ qubit: qubitIdx, step: stepIdx })
@@ -117,7 +130,7 @@ export function useCircuitGates({
         return next
       })
 
-      const opId = `${Date.now()}-${Math.random().toString(16).slice(2)}-cnot-${ctrl.qubit}-${qubitIdx}-${ctrl.step}`
+      const opId = `op-${++opCounterRef.current}-cnot-${ctrl.qubit}-${qubitIdx}-${ctrl.step}`
       setGateSequence(prev => [
         ...prev,
         { id: opId, gate: 'CNOT', qubit: ctrl.qubit, targetQubit: qubitIdx, step: ctrl.step },
@@ -130,9 +143,9 @@ export function useCircuitGates({
       const ctrlKey = `${ctrl.qubit}-${ctrl.step}`
       const tgtKey  = `${qubitIdx}-${stepIdx}`
       setAnimatingCells(prev => new Set(prev).add(ctrlKey).add(tgtKey))
-      setTimeout(() => setAnimatingCells(prev => {
+      scheduleAnimCleanup(() => setAnimatingCells(prev => {
         const s = new Set(prev); s.delete(ctrlKey); s.delete(tgtKey); return s
-      }), 400)
+      }))
 
       try {
         const { qubitStates } = await apiApplyGate(liveStateRef.current, 'CNOT', ctrl.qubit, qubitIdx)
@@ -154,7 +167,7 @@ export function useCircuitGates({
       return next
     })
 
-    const opId = `${Date.now()}-${Math.random().toString(16).slice(2)}-${qubitIdx}-${stepIdx}-${selectedGate}`
+    const opId = `op-${++opCounterRef.current}-${selectedGate}-${qubitIdx}-${stepIdx}`
     setGateSequence(prev => [
       ...prev,
       { id: opId, gate: selectedGate, qubit: qubitIdx, step: stepIdx },
@@ -166,9 +179,9 @@ export function useCircuitGates({
 
     const key = `${qubitIdx}-${stepIdx}`
     setAnimatingCells(prev => new Set(prev).add(key))
-    setTimeout(() => setAnimatingCells(prev => {
+    scheduleAnimCleanup(() => setAnimatingCells(prev => {
       const s = new Set(prev); s.delete(key); return s
-    }), 400)
+    }))
 
     try {
       const { qubitStates, measurement } = await apiApplyGate(liveStateRef.current, selectedGate, qubitIdx)
@@ -186,7 +199,7 @@ export function useCircuitGates({
     selectedGate, cnotPending,
     liveStateRef, setLiveState, setMeasurementLog, measureIdRef,
     setAnimatingCells, setIsAutoPlayEnabled, resetStepByStep, pushUndo,
-    dirtiedRef,
+    dirtiedRef, scheduleAnimCleanup,
   ])
 
   const handleCellClear = useCallback((qubitIdx, stepIdx) => {

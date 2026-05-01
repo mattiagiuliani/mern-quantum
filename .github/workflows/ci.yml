@@ -61,12 +61,20 @@ jobs:
       - name: Frontend build
         run: npm run build --workspace=frontend
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
       - name: Pre-download MongoMemoryServer binary
         run: node --input-type=module -e "import { MongoMemoryServer } from 'mongodb-memory-server'; const s = await MongoMemoryServer.create(); await s.stop(); console.log('MongoDB binary ready');"
         working-directory: backend
+        timeout-minutes: 10
 
       - name: E2E tests (Chromium, Firefox, WebKit)
         run: npx playwright test

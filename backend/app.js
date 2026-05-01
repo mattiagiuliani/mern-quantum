@@ -71,6 +71,8 @@ export function createApp() {
         directives: {
           defaultSrc:     ["'self'"],
           scriptSrc:      ["'self'", 'https://unpkg.com'],
+          // 'unsafe-inline' is required by Swagger UI (swagger-ui-dist injects inline styles).
+          // This backend only serves the API + /api/v1/docs — the React SPA has its own CSP.
           styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com'],
           fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
           imgSrc:         ["'self'", 'data:', 'https://unpkg.com'],

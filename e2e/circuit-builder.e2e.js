@@ -32,11 +32,8 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
-  const authMePromise = page.waitForResponse(
-    (r) => r.request().method() === 'GET' && r.url().includes('/api/v1/auth/me'),
-  )
   await page.goto('/circuit-builder')
-  await authMePromise
+  await expect(page.getByTestId('builder-run-panel')).toBeVisible()
 })
 
 test('builder page renders gate palette and run controls', async ({ page }) => {

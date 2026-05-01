@@ -74,40 +74,25 @@ describe('register', () => {
     expect(res.body.success).toBe(false)
   })
 
-  it('rejects duplicate email', async () => {
-    const original = User.findOne
-    User.findOne = async ({ email }) => (email ? FAKE_USER : null)
+  it('rejects duplicate field via E11000 with 409', async () => {
+    const original = User.create
+    const e11000 = Object.assign(new Error('E11000'), { code: 11000, keyPattern: { email: 1 } })
+    User.create = async () => { throw e11000 }
     try {
       const req = { body: { username: 'newuser', email: 'test@example.com', password: 'secret123' } }
       const res = createRes()
       await register(req, res)
       expect(res.statusCode).toBe(409)
       expect(res.body.success).toBe(false)
+      expect(res.body.message).toMatch(/email/)
     } finally {
-      User.findOne = original
-    }
-  })
-
-  it('rejects duplicate username', async () => {
-    const original = User.findOne
-    let callCount = 0
-    User.findOne = async () => (++callCount === 1 ? null : FAKE_USER)
-    try {
-      const req = { body: { username: 'testuser', email: 'new@example.com', password: 'secret123' } }
-      const res = createRes()
-      await register(req, res)
-      expect(res.statusCode).toBe(409)
-      expect(res.body.success).toBe(false)
-    } finally {
-      User.findOne = original
+      User.create = original
     }
   })
 
   it('creates user, sets cookie and returns safe user on success', async () => {
-    const originalFindOne           = User.findOne
     const originalCreate            = User.create
     const originalFindByIdAndUpdate = User.findByIdAndUpdate
-    User.findOne           = async () => null
     User.create            = async () => FAKE_USER
     User.findByIdAndUpdate = async () => {}
     try {
@@ -120,7 +105,6 @@ describe('register', () => {
       expect(res._cookies.token).toBeTruthy()
       expect(res.body.user.password).toBeUndefined()
     } finally {
-      User.findOne           = originalFindOne
       User.create            = originalCreate
       User.findByIdAndUpdate = originalFindByIdAndUpdate
     }
@@ -184,48 +168,14 @@ describe('login', () => {
 // ─── getMe ───────────────────────────────────────────────────────────────────
 
 describe('getMe', () => {
-  it('returns 404 when user no longer exists', async () => {
-    const original = User.findById
-    User.findById = async () => null
-    try {
-      const req = { user: { id: '507f191e810c19729de860ea' } }
-      const res = createRes()
-      await getMe(req, res)
-      expect(res.statusCode).toBe(404)
-      expect(res.body.success).toBe(false)
-    } finally {
-      User.findById = original
-    }
-  })
-
-  it('returns safe user when authenticated', async () => {
-    const original = User.findById
-    User.findById = async () => FAKE_USER
-    try {
-      const req = { user: { id: '507f191e810c19729de860ea' } }
-      const res = createRes()
-      await getMe(req, res)
-      expect(res.statusCode).toBe(200)
-      expect(res.body.success).toBe(true)
-      expect(res.body.user.username).toBe('testuser')
-      expect(res.body.user.password).toBeUndefined()
-    } finally {
-      User.findById = original
-    }
-  })
-
-  it('returns 500 on unexpected error', async () => {
-    const original = User.findById
-    User.findById = async () => { throw new Error('db failure') }
-    try {
-      const req = { user: { id: '507f191e810c19729de860ea' } }
-      const res = createRes()
-      await getMe(req, res)
-      expect(res.statusCode).toBe(500)
-      expect(res.body.success).toBe(false)
-    } finally {
-      User.findById = original
-    }
+  it('returns req.user directly without a DB round-trip', () => {
+    const safeUser = { id: '507f191e810c19729de860ea', username: 'testuser', email: 'test@example.com' }
+    const req = { user: safeUser }
+    const res = createRes()
+    getMe(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.success).toBe(true)
+    expect(res.body.user).toBe(safeUser)
   })
 })
 

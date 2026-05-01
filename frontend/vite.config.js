@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: { '@': path.resolve(__dirname, 'src') },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
@@ -12,9 +16,9 @@ export default defineConfig({
       reporter: ['text', 'lcov', 'html'],
       exclude: ['src/test/**', 'src/main.jsx'],
       thresholds: {
-        lines:     45,
-        functions: 45,
-        branches:  30,
+        lines:     65,
+        functions: 55,
+        branches:  45,
       },
     },
   },

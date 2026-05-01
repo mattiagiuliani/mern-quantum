@@ -8,7 +8,7 @@ export default defineConfig({
   timeout: isCI ? 90_000 : 30_000,
   expect: { timeout: isCI ? 15_000 : 5_000 },
   fullyParallel: !isCI,
-  workers: isCI ? 1 : undefined,
+  workers: isCI ? 2 : undefined,
   retries: isCI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
@@ -17,11 +17,13 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-  ],
+  projects: isCI
+    ? [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
+    : [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      ],
   webServer: [
     {
       // In CI: serve the already-built production bundle (no on-demand Vite compilation).

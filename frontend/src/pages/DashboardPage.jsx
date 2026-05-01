@@ -69,6 +69,13 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, navigate])
 
+  // Auto-clear the confirm-delete highlight after 3 s; cleanup on unmount.
+  useEffect(() => {
+    if (!confirmDeleteId) return
+    const t = setTimeout(() => setConfirmDeleteId(null), 3000)
+    return () => clearTimeout(t)
+  }, [confirmDeleteId])
+
   const load = useCallback(async (p = 1) => {
     setLoading(true)
     setError('')
@@ -99,17 +106,22 @@ export default function DashboardPage() {
   const handleDelete = useCallback(async (id) => {
     if (confirmDeleteId !== id) {
       setConfirmDeleteId(id)
-      setTimeout(() => setConfirmDeleteId(prev => prev === id ? null : prev), 3000)
+      // auto-clear handled by useEffect above
       return
     }
     setConfirmDeleteId(null)
     setDeletingId(id)
     try {
       await deleteCircuit(id)
-      // reload current page; if last item on page > 1, go back one page
+      // If this was the last item on a page beyond the first, go back one page
+      // (setPage triggers the useEffect which calls load). Otherwise reload manually
+      // because setPage with the same value won't re-trigger the effect.
       const targetPage = circuits.length === 1 && page > 1 ? page - 1 : page
-      setPage(targetPage)
-      if (targetPage === page) load(page)
+      if (targetPage !== page) {
+        setPage(targetPage)
+      } else {
+        load(page)
+      }
     } catch {
       setError('Could not delete circuit.')
     } finally {
@@ -164,75 +176,78 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {circuits.map(item => (
-              <div key={item._id} style={S.card}>
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={S.cardName}>{item.name}</div>
-                  <div style={S.cardMeta}>
-                    {item.qubits} qubit{item.qubits !== 1 ? 's' : ''} · saved {formatDate(item.updatedAt)}
+            {circuits.map(item => {
+              const qubits = (item.circuitMatrix ?? []).length
+              return (
+                <div key={item._id} style={S.card}>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={S.cardName}>{item.name}</div>
+                    <div style={S.cardMeta}>
+                      {qubits} qubit{qubits !== 1 ? 's' : ''} · saved {formatDate(item.updatedAt)}
+                    </div>
                   </div>
-                </div>
 
-                <div style={S.badge}>
-                  {(item.circuitMatrix ?? []).reduce((acc, row) => acc + row.filter(Boolean).length, 0)} gates
-                </div>
+                  <div style={S.badge}>
+                    {(item.circuitMatrix ?? []).reduce((acc, row) => acc + row.filter(Boolean).length, 0)} gates
+                  </div>
 
-                <Button
-                  variant="outline-info"
-                  onClick={() => handleLoad(item)}
-                  style={{ ...S.btnBase, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.35)', fontSize: 11 }}
-                >
-                  Load
-                </Button>
-                {item.lastResult && (
                   <Button
-                    variant="outline-secondary"
-                    onClick={() => navigate('/results', {
-                      state: {
-                        results: item.lastResult,
-                        shots: Array.isArray(item.lastResult) ? null : item.lastResult.shots,
-                        circuitName: item.name,
-                        circuitMatrix: item.circuitMatrix,
-                      },
-                    })}
-                    style={{ ...S.btnBase, border: '1px solid rgba(167,139,250,0.3)', color: 'rgba(167,139,250,0.85)', fontSize: 11 }}
+                    variant="outline-info"
+                    onClick={() => handleLoad(item)}
+                    style={{ ...S.btnBase, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.35)', fontSize: 11 }}
                   >
-                    Results
+                    Load
                   </Button>
-                )}
-                {confirmDeleteId === item._id ? (
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: '#FCA5A5', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em' }}>Sure?</span>
+                  {item.lastResult && (
                     <Button
-                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => navigate('/results', {
+                        state: {
+                          results: item.lastResult,
+                          shots: Array.isArray(item.lastResult) ? null : item.lastResult.shots,
+                          circuitName: item.name,
+                          circuitMatrix: item.circuitMatrix,
+                        },
+                      })}
+                      style={{ ...S.btnBase, border: '1px solid rgba(167,139,250,0.3)', color: 'rgba(167,139,250,0.85)', fontSize: 11 }}
+                    >
+                      Results
+                    </Button>
+                  )}
+                  {confirmDeleteId === item._id ? (
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, color: '#FCA5A5', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em' }}>Sure?</span>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        disabled={deletingId === item._id}
+                        onClick={() => handleDelete(item._id)}
+                        style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.5)', fontSize: 10, padding: '3px 8px' }}
+                      >
+                        {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Yes, delete'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => setConfirmDeleteId(null)}
+                        style={{ ...S.btnBase, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10, padding: '3px 8px' }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
                       variant="outline-danger"
                       disabled={deletingId === item._id}
                       onClick={() => handleDelete(item._id)}
-                      style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.5)', fontSize: 10, padding: '3px 8px' }}
+                      style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.3)', fontSize: 11 }}
                     >
-                      {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Yes, delete'}
+                      {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Delete'}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={() => setConfirmDeleteId(null)}
-                      style={{ ...S.btnBase, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10, padding: '3px 8px' }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline-danger"
-                    disabled={deletingId === item._id}
-                    onClick={() => handleDelete(item._id)}
-                    style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.3)', fontSize: 11 }}
-                  >
-                    {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Delete'}
-                  </Button>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 

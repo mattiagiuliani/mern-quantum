@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { STEP_BY_STEP_MODES, STEP_BY_STEP_STATUS } from './stepByStep.constants'
 import { buildQueueByMode } from './stepByStep.utils'
 
@@ -8,29 +8,24 @@ export function useFeatureDStepByStep() {
   const [queue, setQueue] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  const queueRef = useRef(queue)
+  // Refs mirror state so callbacks inside useCallback can read fresh values
+  // without being re-created on every render.
+  const queueRef        = useRef(queue)
   const currentIndexRef = useRef(currentIndex)
 
-  const setQueueState = useCallback((nextQueue) => {
-    queueRef.current = nextQueue
-    setQueue(nextQueue)
-  }, [])
-
-  const setCurrentIndexState = useCallback((nextIndex) => {
-    currentIndexRef.current = nextIndex
-    setCurrentIndex(nextIndex)
-  }, [])
+  useEffect(() => { queueRef.current = queue },        [queue])
+  useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
 
   const resetStepByStep = useCallback(() => {
-    setQueueState([])
-    setCurrentIndexState(0)
+    setQueue([])
+    setCurrentIndex(0)
     setStatus(STEP_BY_STEP_STATUS.IDLE)
-  }, [setCurrentIndexState, setQueueState])
+  }, [])
 
   const startStepByStep = useCallback((circuit) => {
     const nextQueue = buildQueueByMode(circuit, mode)
-    setQueueState(nextQueue)
-    setCurrentIndexState(0)
+    setQueue(nextQueue)
+    setCurrentIndex(0)
 
     if (nextQueue.length === 0) {
       setStatus(STEP_BY_STEP_STATUS.COMPLETED)
@@ -39,14 +34,15 @@ export function useFeatureDStepByStep() {
 
     setStatus(STEP_BY_STEP_STATUS.READY)
     return nextQueue
-  }, [mode, setCurrentIndexState, setQueueState])
+  }, [mode])
 
   const jumpToIndex = useCallback((index) => {
     const activeQueue = queueRef.current
     if (!Array.isArray(activeQueue) || activeQueue.length === 0) return false
 
+    // Clamp to [0, length] — index === length signals "past the end" → COMPLETED.
     const clampedIndex = Math.max(0, Math.min(index, activeQueue.length))
-    setCurrentIndexState(clampedIndex)
+    setCurrentIndex(clampedIndex)
 
     if (clampedIndex >= activeQueue.length) {
       setStatus(STEP_BY_STEP_STATUS.COMPLETED)
@@ -55,7 +51,7 @@ export function useFeatureDStepByStep() {
     }
 
     return true
-  }, [setCurrentIndexState])
+  }, [])
 
   const executeNext = useCallback(async (executor) => {
     const activeQueue = queueRef.current
@@ -73,14 +69,14 @@ export function useFeatureDStepByStep() {
     try {
       await executor(unit, activeIndex)
       const nextIndex = activeIndex + 1
-      setCurrentIndexState(nextIndex)
+      setCurrentIndex(nextIndex)
       setStatus(nextIndex >= activeQueue.length ? STEP_BY_STEP_STATUS.COMPLETED : STEP_BY_STEP_STATUS.READY)
       return true
     } catch {
       setStatus(STEP_BY_STEP_STATUS.READY)
       return false
     }
-  }, [setCurrentIndexState, status])
+  }, [status])
 
   const totalUnits = queue.length
   const currentUnit = currentIndex < totalUnits ? queue[currentIndex] : null
