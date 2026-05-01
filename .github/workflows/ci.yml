@@ -7,6 +7,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: --no-deprecation
 
 jobs:
   secret-scan:
@@ -39,6 +40,7 @@ jobs:
         run: npm ci
 
       - name: Cache MongoMemoryServer binary
+        id: mongodb-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/mongodb-memory-server
@@ -78,6 +80,7 @@ jobs:
         run: npx playwright install-deps
 
       - name: Pre-download MongoMemoryServer binary
+        if: steps.mongodb-cache.outputs.cache-hit != 'true'
         run: node --input-type=module -e "import { MongoMemoryServer } from 'mongodb-memory-server'; const s = await MongoMemoryServer.create(); await s.stop(); console.log('MongoDB binary ready');"
         working-directory: backend
         timeout-minutes: 10
