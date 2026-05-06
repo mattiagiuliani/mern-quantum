@@ -20,6 +20,10 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Scan all commits reachable from HEAD (handles orphan/force-push root commits
+          # where the parent SHA does not exist and the default range would fail).
+          log-opts: --all
 
   test-and-build:
     runs-on: ubuntu-latest
