@@ -1,0 +1,18 @@
+backend/.env
+backend/.env.production
+frontend/.env
+frontend/.env.production
+*.env.local
+frontend/.env.local
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+node_modules
+
+# Generated artifacts — never commit
+coverage/
+backend/coverage/
+frontend/coverage/
+playwright-report/
+test-results/
+*.lcov

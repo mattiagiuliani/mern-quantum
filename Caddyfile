@@ -1,0 +1,28 @@
+# Caddyfile — TLS-terminating reverse proxy for self-hosted production.
+# Replace "example.com" with your actual domain before deploying.
+# Caddy auto-provisions Let's Encrypt certificates when it can reach ACME servers.
+#
+# Usage: added as the `caddy` service in docker-compose.prod.yml
+
+example.com {
+    # HSTS — safe here because Caddy terminates TLS
+    header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    header X-Frame-Options DENY
+    header X-Content-Type-Options nosniff
+    header Referrer-Policy strict-origin-when-cross-origin
+
+    # API traffic → backend
+    handle /api/* {
+        reverse_proxy backend:3001
+    }
+
+    # Everything else → nginx frontend
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+# Redirect bare HTTP to HTTPS
+http://example.com {
+    redir https://example.com{uri} permanent
+}

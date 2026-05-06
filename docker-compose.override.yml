@@ -1,0 +1,16 @@
+# docker-compose.override.yml
+#
+# Development overrides — automatically merged by `docker compose up`.
+# Exposes port 3001 so developers can hit the API directly (Swagger UI,
+# Bruno/Postman, integration tests) without going through nginx.
+#
+# Usage:
+#   docker compose up --build          # uses this override automatically
+#   docker compose -f docker-compose.yml up  # production: override NOT loaded
+#
+services:
+  backend:
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development

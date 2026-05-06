@@ -1,0 +1,59 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# DEPLOY ORDER:
+#   1. Deploy mern-quantum-backend first and copy its public URL.
+#   2. Set VITE_API_URL build arg on the frontend to that URL + /api/v1
+#      (e.g. https://mern-quantum-backend.onrender.com/api/v1)
+#   3. Set CORS_ORIGIN on the backend to the frontend's public URL.
+
+services:
+  # ── Backend (Node/Express) ────────────────────────────────────────────────
+  - type: web
+    name: mern-quantum-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false          # paste your MongoDB Atlas URI in the Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CORS_ORIGIN
+        sync: false          # set to your frontend Render URL after first deploy
+      - key: QUANTUM_SEMANTICS_MODE
+        value: v2
+      - key: SENTRY_DSN_BACKEND
+        value: ""
+
+  # ── Frontend (nginx static) ───────────────────────────────────────────────
+  - type: web
+    name: mern-quantum-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    # VITE_API_URL is baked at build time. On Render the two services have
+    # separate hostnames, so we cannot use the relative /api/v1 path (nginx
+    # proxy_pass only works inside Docker Compose where both share a network).
+    # Set this to: https://mern-quantum-backend.onrender.com/api/v1
+    buildArgs:
+      - key: VITE_API_URL
+        sync: false
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
