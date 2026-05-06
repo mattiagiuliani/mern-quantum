@@ -1,0 +1,284 @@
+import { useEffect, useState, useCallback } from 'react'
+import { Button, Spinner } from 'react-bootstrap'
+import { useNavigate } from 'react-router-dom'
+import { getMineCircuits, deleteCircuit } from '../api/apiClient'
+import { useAuth } from '../hooks/useAuth'
+import { TOKENS } from '../styles/tokens'
+
+const { colors: C, fonts: F, radius: R } = TOKENS
+
+const S = {
+  page: {
+    minHeight: '100vh',
+    background: C.bg,
+    color: C.textPrimary,
+    fontFamily: F.mono,
+    padding: '80px 24px 32px',
+  },
+  inner: { maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 },
+  eyebrow: { fontSize: 10, letterSpacing: '0.2em', color: C.teal, textTransform: 'uppercase', marginBottom: 6 },
+  title: { fontFamily: F.mono, fontSize: 22, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', margin: 0 },
+  card: {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: R.lg,
+    padding: '18px 22px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  cardName: { flex: 1, minWidth: 160, fontSize: 14, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.01em' },
+  cardMeta: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 4 },
+  badge: {
+    fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+    padding: '4px 10px', borderRadius: R.md,
+    border: `1px solid ${C.tealFaint}`,
+    color: 'rgba(110,231,208,0.8)',
+  },
+  empty: {
+    textAlign: 'center', padding: '60px 24px',
+    color: 'rgba(255,255,255,0.3)', fontSize: 13,
+    border: '1px dashed rgba(255,255,255,0.08)', borderRadius: R.lg,
+  },
+  btnBase: { fontFamily: F.mono, fontSize: 11, letterSpacing: '0.06em', border: 'none', padding: '6px 14px', borderRadius: R.md },
+}
+
+function formatDate(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
+  const [circuits, setCircuits] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const PAGE_LIMIT = 20
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login', { replace: true })
+    }
+  }, [authLoading, user, navigate])
+
+  // Auto-clear the confirm-delete highlight after 3 s; cleanup on unmount.
+  useEffect(() => {
+    if (!confirmDeleteId) return
+    const t = setTimeout(() => setConfirmDeleteId(null), 3000)
+    return () => clearTimeout(t)
+  }, [confirmDeleteId])
+
+  const load = useCallback(async (p = 1) => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await getMineCircuits(p, PAGE_LIMIT)
+      setCircuits(data.circuits ?? [])
+      setTotal(data.total ?? 0)
+      setTotalPages(data.pages ?? 1)
+    } catch {
+      setError('Could not load circuits.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authLoading || !user) return
+
+    queueMicrotask(() => {
+      load(page)
+    })
+  }, [authLoading, user, load, page])
+
+  const handleLoad = useCallback((circuit) => {
+    navigate('/circuit-builder', { state: { savedCircuitToLoad: circuit } })
+  }, [navigate])
+
+  const handleDelete = useCallback(async (id) => {
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id)
+      // auto-clear handled by useEffect above
+      return
+    }
+    setConfirmDeleteId(null)
+    setDeletingId(id)
+    try {
+      await deleteCircuit(id)
+      // If this was the last item on a page beyond the first, go back one page
+      // (setPage triggers the useEffect which calls load). Otherwise reload manually
+      // because setPage with the same value won't re-trigger the effect.
+      const targetPage = circuits.length === 1 && page > 1 ? page - 1 : page
+      if (targetPage !== page) {
+        setPage(targetPage)
+      } else {
+        load(page)
+      }
+    } catch {
+      setError('Could not delete circuit.')
+    } finally {
+      setDeletingId(null)
+    }
+  }, [confirmDeleteId, circuits.length, page, load])
+
+  if (authLoading || (loading && !circuits.length)) {
+    return (
+      <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Spinner animation="border" variant="info" />
+      </div>
+    )
+  }
+
+  return (
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');`}</style>
+      <div style={S.inner}>
+
+        {/* header */}
+        <div style={S.header}>
+          <div>
+            <div style={S.eyebrow}>mern-quantum · Dashboard</div>
+            <h1 style={S.title}>Saved Circuits</h1>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              variant="outline-info"
+              onClick={() => navigate('/circuit-builder')}
+              style={{ ...S.btnBase, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.4)' }}
+            >
+              + New Circuit
+            </Button>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ color: '#FCA5A5', fontSize: 12, padding: '10px 16px', border: '1px solid rgba(252,165,165,0.2)', borderRadius: 8 }}>
+            {error}
+          </div>
+        )}
+
+        {/* list */}
+        {circuits.length === 0 ? (
+          <div style={S.empty}>
+            <div style={{ marginBottom: 12, fontSize: 24 }}>⊙</div>
+            <div>No saved circuits yet.</div>
+            <div style={{ marginTop: 8, fontSize: 11 }}>
+              Build a circuit and save it from the Circuit Builder.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {circuits.map(item => {
+              const qubits = (item.circuitMatrix ?? []).length
+              return (
+                <div key={item._id} style={S.card}>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={S.cardName}>{item.name}</div>
+                    <div style={S.cardMeta}>
+                      {qubits} qubit{qubits !== 1 ? 's' : ''} · saved {formatDate(item.updatedAt)}
+                    </div>
+                  </div>
+
+                  <div style={S.badge}>
+                    {(item.circuitMatrix ?? []).reduce((acc, row) => acc + row.filter(Boolean).length, 0)} gates
+                  </div>
+
+                  <Button
+                    variant="outline-info"
+                    onClick={() => handleLoad(item)}
+                    style={{ ...S.btnBase, color: '#6EE7D0', borderColor: 'rgba(110,231,208,0.35)', fontSize: 11 }}
+                  >
+                    Load
+                  </Button>
+                  {item.lastResult && (
+                    <Button
+                      variant="outline-secondary"
+                      onClick={() => navigate('/results', {
+                        state: {
+                          results: item.lastResult,
+                          shots: Array.isArray(item.lastResult) ? null : item.lastResult.shots,
+                          circuitName: item.name,
+                          circuitMatrix: item.circuitMatrix,
+                        },
+                      })}
+                      style={{ ...S.btnBase, border: '1px solid rgba(167,139,250,0.3)', color: 'rgba(167,139,250,0.85)', fontSize: 11 }}
+                    >
+                      Results
+                    </Button>
+                  )}
+                  {confirmDeleteId === item._id ? (
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, color: '#FCA5A5', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em' }}>Sure?</span>
+                      <Button
+                        size="sm"
+                        variant="outline-danger"
+                        disabled={deletingId === item._id}
+                        onClick={() => handleDelete(item._id)}
+                        style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.5)', fontSize: 10, padding: '3px 8px' }}
+                      >
+                        {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Yes, delete'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline-secondary"
+                        onClick={() => setConfirmDeleteId(null)}
+                        style={{ ...S.btnBase, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 10, padding: '3px 8px' }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline-danger"
+                      disabled={deletingId === item._id}
+                      onClick={() => handleDelete(item._id)}
+                      style={{ ...S.btnBase, color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.3)', fontSize: 11 }}
+                    >
+                      {deletingId === item._id ? <Spinner size="sm" animation="border" /> : 'Delete'}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {total} circuit{total !== 1 ? 's' : ''} · page {page} / {totalPages}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Button
+                variant="outline-secondary"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                style={{ ...S.btnBase, fontSize: 11, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)' }}
+              >
+                ← Prev
+              </Button>
+              <Button
+                variant="outline-secondary"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                style={{ ...S.btnBase, fontSize: 11, color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.12)' }}
+              >
+                Next →
+              </Button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
