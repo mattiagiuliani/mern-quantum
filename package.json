@@ -1,0 +1,30 @@
+{
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "test:backend": "npm test --workspace=backend",
+    "test:frontend": "npm test --workspace=frontend",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:coverage:backend": "npm run test:coverage --workspace=backend",
+    "test:coverage:frontend": "npm run test:coverage --workspace=frontend",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "prepare": "node -e \"const fs=require('fs'); const {spawnSync}=require('child_process'); if (fs.existsSync('.git') && !process.env.CI) { const cmd=process.platform==='win32' ? 'npx.cmd' : 'npx'; spawnSync(cmd, ['husky'], { stdio: 'inherit' }); }\""
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{js,jsx}": [
+      "npx --prefix frontend eslint --fix --max-warnings=0 --config frontend/eslint.config.js"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
+  }
+}

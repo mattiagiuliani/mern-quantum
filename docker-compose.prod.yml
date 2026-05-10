@@ -1,0 +1,32 @@
+# Production overlay — adds Caddy TLS termination on top of docker-compose.yml.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Prerequisites:
+#   1. Edit Caddyfile: replace "example.com" with your domain
+#   2. Ensure ports 80 and 443 are open on the host firewall
+#   3. DNS A record for your domain points to this server's public IP
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  # Remove direct port binding from frontend (Caddy proxies it instead)
+  frontend:
+    ports: !reset []
+
+volumes:
+  caddy_data:
+  caddy_config:
