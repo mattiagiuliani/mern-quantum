@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mern-quantum · UI Sketch</title>
+  <style>
+    /* ─── Reset & base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0b1120;
+      color: #e2e8f0;
+      padding: 32px 24px 64px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 22px; font-weight: 700; color: #6ee7d0; letter-spacing: -.02em; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #64748b; margin-bottom: 48px; }
+
+    /* ─── Layout ────────────────────────────────────────────────────── */
+    .pages { display: flex; flex-direction: column; gap: 64px; }
+    .page-block { display: flex; flex-direction: column; gap: 20px; }
+    .page-label {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+      color: #94a3b8; font-weight: 600;
+    }
+    .page-label::before {
+      content: ''; display: block; width: 3px; height: 18px;
+      background: #6ee7d0; border-radius: 2px;
+    }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    /* ─── Sketch card ───────────────────────────────────────────────── */
+    .sketch {
+      background: #111827;
+      border: 1.5px solid #1e293b;
+      border-radius: 14px;
+      padding: 18px 20px;
+      flex: 1 1 340px;
+      min-width: 320px;
+    }
+    .sketch-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: #6ee7d0; margin-bottom: 14px;
+    }
+
+    /* ─── Mock UI elements ──────────────────────────────────────────── */
+    .mock-bar {
+      background: #1e293b; border-radius: 6px; height: 36px;
+      display: flex; align-items: center; padding: 0 12px; gap: 8px;
+      margin-bottom: 10px; font-size: 12px; color: #94a3b8;
+    }
+    .mock-pill {
+      background: #0f2231; border: 1px solid #164e63;
+      border-radius: 20px; padding: 2px 10px; font-size: 10px; color: #67e8f9;
+    }
+    .mock-input {
+      background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+      height: 32px; padding: 0 10px; font-size: 12px; color: #cbd5e1; width: 100%;
+      margin-bottom: 8px; display: flex; align-items: center;
+    }
+    .mock-btn {
+      border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: 600;
+      cursor: default; display: inline-block;
+    }
+    .mock-btn-primary { background: #0e4f4a; border: 1px solid #6ee7d0; color: #6ee7d0; }
+    .mock-btn-secondary { background: #1e293b; border: 1px solid #475569; color: #94a3b8; }
+    .mock-btn-danger { background: #3b1a1a; border: 1px solid #f87171; color: #f87171; }
+    .mock-section {
+      background: #0f172a; border: 1px dashed #334155; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 8px; font-size: 11px; color: #64748b;
+    }
+    .mock-section b { color: #94a3b8; display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .mock-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+      margin-bottom: 8px;
+    }
+    .mock-cell {
+      background: #1e293b; border: 1px solid #334155; border-radius: 4px;
+      height: 28px; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #6ee7d0;
+    }
+    .mock-cell.empty { color: transparent; }
+    .mock-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+    .mock-chip {
+      background: #1e3a5f; border: 1px solid #2563eb; border-radius: 6px;
+      padding: 3px 10px; font-size: 10px; color: #93c5fd;
+    }
+    .mock-chip.gate-h { background: #1c3a3a; border-color: #6ee7d0; color: #6ee7d0; }
+    .mock-chip.gate-x { background: #2d1b4e; border-color: #a78bfa; color: #a78bfa; }
+    .mock-chip.gate-m { background: #2d1a1a; border-color: #f87171; color: #f87171; }
+    .mock-stat {
+      background: #1e293b; border-radius: 6px; padding: 8px 10px;
+      display: flex; justify-content: space-between; font-size: 11px;
+      margin-bottom: 4px; color: #94a3b8;
+    }
+    .mock-stat span { color: #6ee7d0; font-weight: 700; }
+    .mock-bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 50px; margin-bottom: 8px; }
+    .mock-bar-col { background: #164e63; border-radius: 3px 3px 0 0; flex: 1; }
+    .mock-tag {
+      background: #1e3a2e; border: 1px solid #16a34a; border-radius: 20px;
+      padding: 2px 8px; font-size: 10px; color: #4ade80; display: inline-block; margin: 2px;
+    }
+    .mock-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #1e293b; border: 1.5px solid #6ee7d0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #6ee7d0; flex-shrink: 0;
+    }
+    .mock-card {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 6px;
+    }
+    .mock-card-title { font-size: 12px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .mock-card-sub { font-size: 10px; color: #64748b; }
+    .selected { border-color: #6ee7d0 !important; background: #0e2020 !important; }
+
+    /* ─── Data/interaction panels ───────────────────────────────────── */
+    .info-col { flex: 1 1 220px; min-width: 200px; display: flex; flex-direction: column; gap: 10px; }
+    .info-box {
+      background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 14px 16px;
+    }
+    .info-box-title {
+      font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+      color: #6ee7d0; font-weight: 700; margin-bottom: 10px;
+    }
+    .api-call {
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 11px;
+    }
+    .method {
+      font-size: 9px; font-weight: 700; border-radius: 3px;
+      padding: 2px 5px; flex-shrink: 0; margin-top: 1px;
+    }
+    .method.get    { background: #14532d; color: #4ade80; }
+    .method.post   { background: #1c3a5f; color: #60a5fa; }
+    .method.put    { background: #3b2800; color: #fb923c; }
+    .method.delete { background: #3b1a1a; color: #f87171; }
+    .api-path { color: #94a3b8; line-height: 1.5; }
+    .api-path b { color: #e2e8f0; display: block; }
+    .interaction {
+      display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: 11px; color: #94a3b8;
+    }
+    .interaction::before {
+      content: '↗'; color: #6ee7d0; flex-shrink: 0; font-weight: 700; margin-top: 1px;
+    }
+
+    /* ─── Legend ────────────────────────────────────────────────────── */
+    .legend {
+      display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 48px;
+      background: #111827; border: 1px solid #1e293b; border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* ─── Auth badge ────────────────────────────────────────────────── */
+    .auth-badge {
+      font-size: 9px; background: #1c2a1c; border: 1px solid #16a34a;
+      color: #4ade80; border-radius: 4px; padding: 1px 5px; margin-left: 4px;
+    }
+    .noauth-badge {
+      font-size: 9px; background: #1e1a0f; border: 1px solid #ca8a04;
+      color: #facc15; border-radius: 4px; padding: 1px 5px; margin-left: 4px;
+    }
+
+    hr.divider { border: none; border-top: 1px solid #1e293b; margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+<h1>mern-quantum · UI Sketch</h1>
+<p class="subtitle">Wireframe of each page — data consumed (API calls) and user interactions</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#0e4f4a;border:1px solid #6ee7d0"></div> Sketch frame</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#14532d"></div> GET endpoint</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1c3a5f"></div> POST endpoint</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3b2800"></div> PUT endpoint</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3b1a1a"></div> DELETE endpoint</div>
+  <div class="legend-item" style="color:#4ade80">■ Protected <span class="auth-badge">🔒 auth</span></div>
+  <div class="legend-item" style="color:#facc15">■ Public <span class="noauth-badge">open</span></div>
+</div>
+
+<div class="pages">
+
+  <!-- ─── 1. Homepage ────────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/ · Homepage</div>
+    <div class="row">
+
+      <div class="sketch">
+        <div class="sketch-title">Layout</div>
+
+        <div class="mock-bar">
+          <span style="color:#6ee7d0;font-weight:700;font-size:11px">mern-quantum</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <span class="mock-btn mock-btn-secondary" style="padding:3px 10px;font-size:10px">Login</span>
+            <span class="mock-btn mock-btn-primary" style="padding:3px 10px;font-size:10px">Register</span>
+          </div>
+        </div>
+
+        <div class="mock-section" style="text-align:center;padding:20px 12px">
+          <b style="font-size:16px;color:#e2e8f0;letter-spacing:-.01em;text-transform:none">Quantum Circuit Simulator</b>
+          <div style="font-size:11px;color:#64748b;margin-top:6px">Build, simulate, and share quantum circuits</div>
+          <div style="margin-top:14px;display:flex;justify-content:center;gap:8px">
+            <span class="mock-btn mock-btn-primary">Start building →</span>
+            <span class="mock-btn mock-btn-secondary">Browse templates</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+          <div class="mock-section" style="text-align:center">
+            <b style="text-transform:none;font-size:18px;color:#6ee7d0">H</b>
+            <div style="font-size:10px">Gate library</div>
+          </div>
+          <div class="mock-section" style="text-align:center">
+            <b style="text-transform:none;font-size:18px;color:#a78bfa">⊕</b>
+            <div style="font-size:10px">Entanglement</div>
+          </div>
+          <div class="mock-section" style="text-align:center">
+            <b style="text-transform:none;font-size:18px;color:#f87171">M</b>
+            <div style="font-size:10px">Measurement</div>
+          </div>
+        </div>
+
+        <!-- Comparison table -->
+        <div class="mock-section">
+          <b>Gate comparison table</b>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;font-size:9px;color:#94a3b8">
+            <span style="color:#6ee7d0">Gate</span><span>|0⟩</span><span>|1⟩</span><span>Type</span>
+            <span>H</span><span>|+⟩</span><span>|−⟩</span><span>Clifford</span>
+            <span>X</span><span>|1⟩</span><span>|0⟩</span><span>Pauli</span>
+            <span>CNOT</span><span colspan="2">entangle</span><span>Two-q</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div style="font-size:11px;color:#64748b;padding:6px 0">
+            No API calls on load.<br/>Static content only.
+          </div>
+          <hr class="divider"/>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/auth/me <span class="auth-badge">🔒</span></b>Called by AuthContext on mount — determines nav state (Login vs avatar)</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Click "Start building" → navigate to /circuit-builder</div>
+          <div class="interaction">Click "Browse templates" → navigate to /templates</div>
+          <div class="interaction">Click "Login" / "Register" → navigate to /login or /register</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 2. Login ───────────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/login · Login Page</div>
+    <div class="row">
+
+      <div class="sketch" style="max-width:320px">
+        <div class="sketch-title">Layout</div>
+        <div style="background:#0f172a;border-radius:10px;padding:20px">
+          <div style="font-size:10px;letter-spacing:.16em;color:#6ee7d0;margin-bottom:6px">MERN-QUANTUM</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px">Sign in</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Email</div>
+          <div class="mock-input">alice@example.com</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Password</div>
+          <div class="mock-input">••••••••</div>
+          <div class="mock-section" style="display:none"></div>
+          <!-- error state -->
+          <div style="background:#3b1a1a;border:1px solid #f87171;border-radius:6px;padding:6px 10px;font-size:10px;color:#f87171;margin-bottom:10px">
+            ✕ Invalid credentials
+          </div>
+          <span class="mock-btn mock-btn-primary" style="display:block;text-align:center;width:100%">Sign in</span>
+          <div style="font-size:10px;color:#64748b;text-align:center;margin-top:10px">No account? <span style="color:#6ee7d0">Create one</span></div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/auth/login <span class="noauth-badge">open</span></b>Body: email + password → sets HttpOnly token + refreshToken cookies</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Fill email + password → submit form</div>
+          <div class="interaction">Success → navigate to /circuit-builder</div>
+          <div class="interaction">Error → show inline Alert with message from API</div>
+          <div class="interaction">Click "Create one" → navigate to /register</div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">Client State</div>
+          <div style="font-size:11px;color:#94a3b8">
+            <div style="margin-bottom:4px"><span style="color:#6ee7d0">AuthContext.user</span> — set after successful login via /auth/me response</div>
+            <div><span style="color:#6ee7d0">loading</span> — spinner on button during request</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 3. Register ────────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/register · Register Page</div>
+    <div class="row">
+
+      <div class="sketch" style="max-width:320px">
+        <div class="sketch-title">Layout</div>
+        <div style="background:#0f172a;border-radius:10px;padding:20px">
+          <div style="font-size:10px;letter-spacing:.16em;color:#6ee7d0;margin-bottom:6px">MERN-QUANTUM</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px">Create account</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Username</div>
+          <div class="mock-input">alice</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Email</div>
+          <div class="mock-input">alice@example.com</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">Password</div>
+          <div class="mock-input">••••••••</div>
+          <div style="font-size:9px;color:#64748b;margin-bottom:10px">Min 8 chars · uppercase · lowercase · digit</div>
+          <span class="mock-btn mock-btn-primary" style="display:block;text-align:center;width:100%">Create account</span>
+          <div style="font-size:10px;color:#64748b;text-align:center;margin-top:10px">Already have one? <span style="color:#6ee7d0">Sign in</span></div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/auth/register <span class="noauth-badge">open</span></b>Body: username + email + password → 201 + sets auth cookies</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Fill fields → client validates regex before sending</div>
+          <div class="interaction">Success → navigate to /circuit-builder</div>
+          <div class="interaction">Error 409 → "Email already in use"</div>
+          <div class="interaction">Error 400 → Zod validation message from backend</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 4. Circuit Builder ─────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/circuit-builder · Circuit Builder Page</div>
+    <div class="row">
+
+      <div class="sketch" style="flex: 2 1 500px">
+        <div class="sketch-title">Layout (3-column)</div>
+
+        <!-- Nav -->
+        <div class="mock-bar" style="margin-bottom:14px">
+          <span style="color:#6ee7d0;font-weight:700;font-size:11px">mern-quantum</span>
+          <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+            <span style="font-size:10px;color:#94a3b8">alice</span>
+            <span class="mock-btn mock-btn-secondary" style="padding:3px 10px;font-size:10px">Templates</span>
+            <span class="mock-btn mock-btn-primary" style="padding:3px 10px;font-size:10px">💾 Save</span>
+            <span class="mock-btn mock-btn-danger" style="padding:3px 10px;font-size:10px">Reset</span>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:10px">
+
+          <!-- Left: gate palette -->
+          <div>
+            <div class="mock-section">
+              <b>Step 1 · Pick a gate</b>
+              <div class="mock-row">
+                <span class="mock-chip gate-h">H</span>
+                <span class="mock-chip gate-x">X</span>
+                <span class="mock-chip gate-m">M</span>
+                <span class="mock-chip" style="background:#1e2a1e;border-color:#22c55e;color:#22c55e">CNOT</span>
+              </div>
+            </div>
+            <div class="mock-section">
+              <b>Quick start</b>
+              <div style="font-size:10px;color:#64748b;line-height:1.6">
+                1. Choose a gate<br/>2. Click cells on wires<br/>3. Pick shots and run
+              </div>
+            </div>
+            <div class="mock-section">
+              <b>Circuit sequence</b>
+              <div style="font-size:10px;color:#94a3b8">q[0] H → M</div>
+              <div style="font-size:10px;color:#94a3b8">q[1] CNOT → M</div>
+            </div>
+            <div class="mock-section">
+              <b>QASM Preview</b>
+              <div style="font-size:9px;color:#64748b;font-family:monospace">h q[0];<br/>cx q[0],q[1];<br/>measure q → c;</div>
+            </div>
+          </div>
+
+          <!-- Center: circuit canvas -->
+          <div>
+            <div class="mock-section" style="padding:12px">
+              <b>Step 2 · Build circuit</b>
+              <div style="font-size:10px;color:#64748b;margin-bottom:8px">3 qubits · 5 time steps</div>
+              <div class="mock-grid">
+                <span class="mock-cell gate-h">H</span><span class="mock-cell">·</span><span class="mock-cell gate-m">M</span><span class="mock-cell empty">·</span><span class="mock-cell empty">·</span>
+                <span class="mock-cell" style="background:#1e2a1e;border-color:#22c55e;color:#22c55e">ctrl</span><span class="mock-cell" style="background:#1e2a1e;border-color:#22c55e;color:#22c55e">tgt</span><span class="mock-cell gate-m">M</span><span class="mock-cell empty">·</span><span class="mock-cell empty">·</span>
+                <span class="mock-cell gate-x">X</span><span class="mock-cell empty">·</span><span class="mock-cell gate-m selected">M</span><span class="mock-cell empty">·</span><span class="mock-cell empty">·</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: sidebar -->
+          <div>
+            <!-- Live state panel -->
+            <div class="mock-section" style="margin-bottom:8px">
+              <b>Qubit snapshot</b>
+              <div style="font-size:9px;color:#64748b;margin-bottom:6px">Simplified model for live feedback</div>
+              <div style="display:flex;gap:6px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                  <div style="width:36px;height:36px;background:#0e2020;border:1.5px solid #6ee7d0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#6ee7d0">|+⟩</div>
+                  <div style="font-size:8px;color:#64748b">q[0]</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                  <div style="width:36px;height:36px;background:#1a1a2e;border:1.5px solid #a78bfa;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#a78bfa">|0⟩</div>
+                  <div style="font-size:8px;color:#64748b">q[1]</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                  <div style="width:36px;height:36px;background:#1e293b;border:1.5px solid #475569;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#94a3b8">|1⟩</div>
+                  <div style="font-size:8px;color:#64748b">q[2]</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Run panel -->
+            <div class="mock-section">
+              <b>Step 3 · Run simulation</b>
+              <div class="mock-row" style="margin-bottom:6px">
+                <span class="mock-chip selected">128</span>
+                <span class="mock-chip">512</span>
+                <span class="mock-chip">1024</span>
+              </div>
+              <span class="mock-btn mock-btn-primary" style="display:block;text-align:center;font-size:10px">Run simulation (128 shots)</span>
+            </div>
+
+            <!-- Step-by-step -->
+            <div class="mock-section" style="margin-top:6px">
+              <b>Step-by-step mode</b>
+              <div class="mock-row" style="margin-bottom:4px">
+                <span class="mock-chip">By gate</span>
+                <span class="mock-chip selected">By time</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <span class="mock-btn mock-btn-primary" style="font-size:9px;padding:4px 8px">▶ Start</span>
+                <span class="mock-btn mock-btn-secondary" style="font-size:9px;padding:4px 8px">→ Next</span>
+                <span class="mock-btn mock-btn-danger" style="font-size:9px;padding:4px 8px">↺ Reset</span>
+              </div>
+            </div>
+
+            <!-- Results -->
+            <div class="mock-section" style="margin-top:6px">
+              <b>Results (128 shots)</b>
+              <div class="mock-bar-chart">
+                <div class="mock-bar-col" style="height:80%"></div>
+                <div class="mock-bar-col" style="height:20%"></div>
+                <div class="mock-bar-col" style="height:5%"></div>
+                <div class="mock-bar-col" style="height:60%"></div>
+              </div>
+              <div style="font-size:9px;color:#64748b">|00⟩ 63%  |01⟩ 18%  ...</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/auth/me <span class="auth-badge">🔒</span></b>On mount (AuthContext) — load user identity</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/circuits/applyGate <span class="noauth-badge">open</span></b>Every step-by-step Next click — body: qubitStates + gate + index</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/circuits/run <span class="noauth-badge">open</span></b>On "Run simulation" — body: circuit matrix + shots</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/circuits <span class="auth-badge">🔒</span></b>On "Save" (new circuit)</div>
+          </div>
+          <div class="api-call">
+            <span class="method put">PUT</span>
+            <div class="api-path"><b>/circuits/:id <span class="auth-badge">🔒</span></b>On "Save" (existing circuit)</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Select gate from palette → click cell to place</div>
+          <div class="interaction">Ctrl+Z / Cmd+Z → undo last gate</div>
+          <div class="interaction">Click placed gate → remove it</div>
+          <div class="interaction">Select shots preset → Run simulation</div>
+          <div class="interaction">Step-by-step: Start → Next (↑ per step) → Reset</div>
+          <div class="interaction">Auto-play toggle → timed step execution</div>
+          <div class="interaction">Templates button → navigate to /templates (passes circuit draft)</div>
+          <div class="interaction">Save → opens SaveModal (name input) → POST or PUT</div>
+          <div class="interaction">Reset → clears circuit + results + live state</div>
+          <div class="interaction">View Full Results → navigate to /results</div>
+          <div class="interaction">Template load → ConfirmModal if circuit not empty</div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">Client State (hooks)</div>
+          <div style="font-size:10px;color:#94a3b8;line-height:1.8">
+            <span style="color:#6ee7d0">useCircuitGates</span> — circuit matrix, gate palette<br/>
+            <span style="color:#6ee7d0">useLiveState</span> — qubitStates[], measurementLog<br/>
+            <span style="color:#6ee7d0">useFeatureAMultiRun</span> — shots, results, runStatus<br/>
+            <span style="color:#6ee7d0">useFeatureDStepByStep</span> — queue, status, index<br/>
+            <span style="color:#6ee7d0">useStepByStepHandlers</span> — start/next/reset callbacks<br/>
+            <span style="color:#6ee7d0">useUndoStack</span> — undo history<br/>
+            <span style="color:#6ee7d0">useSaveCircuit</span> — save modal, name draft<br/>
+            <span style="color:#6ee7d0">useTemplateLoader</span> — pendingLoad / confirm / cancel
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 5. Templates ───────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/templates · Templates Page</div>
+    <div class="row">
+
+      <div class="sketch" style="flex: 2 1 480px">
+        <div class="sketch-title">Layout (2-column)</div>
+
+        <div class="mock-bar" style="margin-bottom:12px">
+          <div>
+            <div style="font-size:10px;letter-spacing:.14em;color:#6ee7d0">MERN-QUANTUM · TEMPLATES</div>
+            <div style="font-size:14px;font-weight:700">Community Templates</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <span class="mock-btn mock-btn-secondary" style="font-size:10px;padding:4px 10px">← Builder</span>
+            <span class="mock-btn mock-btn-primary" style="font-size:10px;padding:4px 10px">💾 Save circuit</span>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:0;border-bottom:1px solid #1e293b;margin-bottom:10px">
+          <div style="padding:6px 16px;font-size:11px;border-bottom:2px solid #6ee7d0;color:#6ee7d0">Public</div>
+          <div style="padding:6px 16px;font-size:11px;color:#64748b">Mine</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:12px">
+
+          <!-- Left: list -->
+          <div>
+            <div class="mock-input" style="margin-bottom:10px">Filter by tag…</div>
+
+            <div class="mock-card selected">
+              <div class="mock-card-title">Bell State Demo</div>
+              <div class="mock-card-sub">
+                <span class="mock-tag">entanglement</span>
+                <span class="mock-tag">education</span>
+              </div>
+              <div style="font-size:10px;color:#64748b;margin-top:4px">by alice · 2 qubits</div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">GHZ State</div>
+              <div class="mock-card-sub"><span class="mock-tag">3-qubit</span></div>
+            </div>
+            <div class="mock-card">
+              <div class="mock-card-title">Quantum Teleportation</div>
+              <div class="mock-card-sub"><span class="mock-tag">advanced</span></div>
+            </div>
+          </div>
+
+          <!-- Right: preview panel -->
+          <div>
+            <div class="mock-section" style="height:100%">
+              <b>Preview · Bell State Demo</b>
+              <div class="mock-grid" style="margin-bottom:8px">
+                <span class="mock-cell gate-h">H</span><span class="mock-cell" style="background:#1e2a1e;border-color:#22c55e;color:#22c55e">ctrl</span><span class="mock-cell gate-m">M</span>
+                <span class="mock-cell empty">·</span><span class="mock-cell" style="background:#1e2a1e;border-color:#22c55e;color:#22c55e">tgt</span><span class="mock-cell gate-m">M</span>
+              </div>
+              <div style="display:flex;gap:4px;margin-bottom:8px">
+                <span class="mock-btn mock-btn-primary" style="font-size:9px;padding:4px 8px">▶ Preview</span>
+                <span class="mock-btn mock-btn-secondary" style="font-size:9px;padding:4px 8px">Use →</span>
+                <span class="mock-btn mock-btn-secondary" style="font-size:9px;padding:4px 8px">✏ Edit</span>
+                <span class="mock-btn mock-btn-danger" style="font-size:9px;padding:4px 8px">🗑</span>
+              </div>
+              <!-- mini histogram -->
+              <div class="mock-bar-chart" style="height:40px;margin-bottom:4px">
+                <div class="mock-bar-col" style="height:95%"></div>
+                <div class="mock-bar-col" style="height:5%"></div>
+                <div class="mock-bar-col" style="height:4%"></div>
+                <div class="mock-bar-col" style="height:90%"></div>
+              </div>
+              <div style="font-size:9px;color:#64748b">|00⟩ 49%  |11⟩ 48%  …</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/templates/public <span class="noauth-badge">open</span></b>On mount — public tab default</div>
+          </div>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/templates/mine <span class="auth-badge">🔒</span></b>When "Mine" tab selected</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/circuits/run <span class="noauth-badge">open</span></b>On "Preview" — runs template circuit (128 shots)</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/templates <span class="auth-badge">🔒</span></b>SaveTemplateModal submit (create)</div>
+          </div>
+          <div class="api-call">
+            <span class="method put">PUT</span>
+            <div class="api-path"><b>/templates/:id <span class="auth-badge">🔒</span></b>SaveTemplateModal submit (edit)</div>
+          </div>
+          <div class="api-call">
+            <span class="method delete">DELETE</span>
+            <div class="api-path"><b>/templates/:id <span class="auth-badge">🔒</span></b>ConfirmModal "Delete" confirm</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Tab "Public" / "Mine" → refetch list</div>
+          <div class="interaction">Filter input → client-side tag filter (no extra API call)</div>
+          <div class="interaction">Click template card → select → show preview</div>
+          <div class="interaction">▶ Preview → POST /circuits/run → show histogram</div>
+          <div class="interaction">Use → navigate to /circuit-builder (state: templateToApply)</div>
+          <div class="interaction">✏ Edit → open SaveTemplateModal pre-filled</div>
+          <div class="interaction">🗑 Delete → ConfirmModal → DELETE /templates/:id</div>
+          <div class="interaction">💾 Save circuit → open SaveTemplateModal (new)</div>
+          <div class="interaction">"Mine" tab without auth → redirect to /login</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 6. Results ─────────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/results · Results Page</div>
+    <div class="row">
+
+      <div class="sketch" style="max-width:460px">
+        <div class="sketch-title">Layout</div>
+
+        <div class="mock-bar" style="margin-bottom:12px">
+          <span style="color:#6ee7d0;font-weight:700;font-size:11px">Simulation Results</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <span class="mock-btn mock-btn-secondary" style="font-size:10px;padding:4px 10px">← Builder</span>
+          </div>
+        </div>
+
+        <div class="mock-section">
+          <b>Summary</b>
+          <div class="mock-stat">Shots <span>1024</span></div>
+          <div class="mock-stat">Unique outcomes <span>4</span></div>
+          <div class="mock-stat">Circuit saved as <span>Bell Demo</span></div>
+        </div>
+
+        <div class="mock-section" style="margin-top:8px">
+          <b>Histogram</b>
+          <div class="mock-bar-chart" style="height:70px;margin-bottom:6px">
+            <div class="mock-bar-col" style="height:98%"></div>
+            <div class="mock-bar-col" style="height:3%"></div>
+            <div class="mock-bar-col" style="height:2%"></div>
+            <div class="mock-bar-col" style="height:95%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#64748b">
+            <span>|00⟩ 49%</span><span>|01⟩ 2%</span><span>|10⟩ 1%</span><span>|11⟩ 48%</span>
+          </div>
+        </div>
+
+        <div class="mock-section" style="margin-top:8px">
+          <b>Outcome table</b>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;color:#94a3b8;margin-top:4px">
+            <span style="color:#6ee7d0">State</span><span>Count</span><span>%</span>
+            <span>|00⟩</span><span>502</span><span>49.0%</span>
+            <span>|11⟩</span><span>491</span><span>47.9%</span>
+            <span>|01⟩</span><span>18</span><span>1.8%</span>
+            <span>|10⟩</span><span>13</span><span>1.3%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div style="font-size:11px;color:#64748b;padding:4px 0">
+            No API calls — results are passed via React Router <code style="color:#6ee7d0">location.state</code> from the builder. Page is stateless.
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Read histogram and outcome table (read-only)</div>
+          <div class="interaction">← Builder → navigate back to /circuit-builder</div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">Data consumed</div>
+          <div style="font-size:10px;color:#94a3b8;line-height:1.8">
+            <span style="color:#6ee7d0">location.state.results</span> — outcome counts map<br/>
+            <span style="color:#6ee7d0">location.state.shots</span> — total shots<br/>
+            <span style="color:#6ee7d0">location.state.savedCircuitName</span> — optional label<br/>
+            <span style="color:#6ee7d0">location.state.circuit</span> — matrix for display
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── 7. Dashboard ───────────────────────────────────────────── -->
+  <div class="page-block">
+    <div class="page-label">/dashboard · Dashboard Page <span class="auth-badge">🔒 auth required</span></div>
+    <div class="row">
+
+      <div class="sketch" style="max-width:460px">
+        <div class="sketch-title">Layout</div>
+        <div class="mock-bar" style="margin-bottom:12px">
+          <span style="color:#6ee7d0;font-weight:700;font-size:11px">My Circuits</span>
+          <div style="margin-left:auto">
+            <span class="mock-btn mock-btn-primary" style="font-size:10px;padding:4px 10px">+ New circuit</span>
+          </div>
+        </div>
+        <div class="mock-card" style="display:flex;align-items:center;gap:10px">
+          <div class="mock-avatar">A</div>
+          <div>
+            <div class="mock-card-title">alice</div>
+            <div class="mock-card-sub">alice@example.com</div>
+          </div>
+          <div style="margin-left:auto">
+            <span class="mock-btn mock-btn-danger" style="font-size:9px;padding:3px 8px">Logout</span>
+          </div>
+        </div>
+        <div class="mock-card" style="margin-top:6px">
+          <div class="mock-card-title">Bell State Demo</div>
+          <div class="mock-card-sub">2 qubits · last run 128 shots</div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-card-title">Grover Search v2</div>
+          <div class="mock-card-sub">3 qubits · last run 1024 shots</div>
+        </div>
+      </div>
+
+      <div class="info-col">
+        <div class="info-box">
+          <div class="info-box-title">API Calls</div>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/auth/me <span class="auth-badge">🔒</span></b>User identity + profile</div>
+          </div>
+          <div class="api-call">
+            <span class="method get">GET</span>
+            <div class="api-path"><b>/circuits/mine <span class="auth-badge">🔒</span></b>Paginated list of saved circuits</div>
+          </div>
+          <div class="api-call">
+            <span class="method post">POST</span>
+            <div class="api-path"><b>/auth/logout <span class="auth-badge">🔒</span></b>On "Logout" — clears cookies</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-box-title">User Interactions</div>
+          <div class="interaction">Click circuit card → navigate to /circuit-builder with circuit loaded</div>
+          <div class="interaction">+ New circuit → navigate to /circuit-builder (empty)</div>
+          <div class="interaction">Logout → POST /auth/logout → navigate to /</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- .pages -->
+
+</body>
+</html>

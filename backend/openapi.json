@@ -1,0 +1,415 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "mern-quantum API",
+    "version": "1.0.0",
+    "description": "REST API for the MERN Quantum Circuit Simulator — authentication, quantum circuit operations, and community template management."
+  },
+  "servers": [
+    { "url": "http://localhost:3001/api/v1", "description": "Local development" }
+  ],
+  "tags": [
+    { "name": "Auth",      "description": "Registration, login, token refresh, logout" },
+    { "name": "Circuits",  "description": "Save / load user circuits and run simulations" },
+    { "name": "Templates", "description": "Community-shared quantum circuit templates" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "token",
+        "description": "HttpOnly JWT access cookie set on login/register"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id":      { "type": "string" },
+          "username": { "type": "string" },
+          "email":    { "type": "string", "format": "email" },
+          "createdAt":{ "type": "string", "format": "date-time" }
+        }
+      },
+      "CircuitMatrix": {
+        "type": "array",
+        "description": "4 × 8 matrix of gate values. Each cell is null, a gate string ('H'|'X'|'M'), or a CNOT descriptor object.",
+        "items": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "Circuit": {
+        "type": "object",
+        "properties": {
+          "_id":          { "type": "string" },
+          "name":         { "type": "string" },
+          "circuitMatrix":{ "$ref": "#/components/schemas/CircuitMatrix" },
+          "lastResult":   { "type": "object", "nullable": true },
+          "author":       { "type": "string" },
+          "createdAt":    { "type": "string", "format": "date-time" },
+          "updatedAt":    { "type": "string", "format": "date-time" }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "_id":         { "type": "string" },
+          "name":        { "type": "string" },
+          "description": { "type": "string" },
+          "circuit":     { "$ref": "#/components/schemas/CircuitMatrix" },
+          "tags":        { "type": "array", "items": { "type": "string" } },
+          "isPublic":    { "type": "boolean" },
+          "author":      { "type": "object", "properties": { "_id": { "type": "string" }, "username": { "type": "string" } } },
+          "createdAt":   { "type": "string", "format": "date-time" },
+          "updatedAt":   { "type": "string", "format": "date-time" }
+        }
+      },
+      "QubitStates": {
+        "type": "array",
+        "description": "Array of 4 qubit probability values (|1⟩ amplitude squared)",
+        "items": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minItems": 4,
+        "maxItems": 4
+      },
+      "PaginatedList": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "page":  { "type": "integer" },
+          "pages": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "email", "password"],
+                "properties": {
+                  "username": { "type": "string", "minLength": 3, "maxLength": 30 },
+                  "email":    { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created; access + refresh cookies set",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/User" } } } } } } }
+          },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Email or username already in use", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log in with email and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email":    { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authenticated; cookies set" },
+          "401": { "description": "Invalid credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "429": { "description": "Account locked after too many failed attempts (Retry-After header included)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Invalidate the current session (clears cookies + server-side refresh hash)",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Logged out" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Issue a new access token using the refresh cookie",
+        "responses": {
+          "200": { "description": "New access cookie set" },
+          "401": { "description": "Refresh token invalid or revoked", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Return the authenticated user's profile",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "User object", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "type": "object", "properties": { "user": { "$ref": "#/components/schemas/User" } } } } } } } },
+          "401": { "description": "Not authenticated", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/circuits": {
+      "get": {
+        "tags": ["Circuits"],
+        "summary": "List the authenticated user's saved circuits",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "page",  "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of circuits", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/PaginatedList" }, { "type": "object", "properties": { "circuits": { "type": "array", "items": { "$ref": "#/components/schemas/Circuit" } } } }] } } } }
+        }
+      },
+      "post": {
+        "tags": ["Circuits"],
+        "summary": "Save a new circuit",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "circuitMatrix"],
+                "properties": {
+                  "name":          { "type": "string" },
+                  "circuitMatrix": { "$ref": "#/components/schemas/CircuitMatrix" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Circuit saved" },
+          "400": { "description": "Validation error" }
+        }
+      }
+    },
+    "/circuits/{id}": {
+      "put": {
+        "tags": ["Circuits"],
+        "summary": "Update an existing circuit (owner only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "circuitMatrix": { "$ref": "#/components/schemas/CircuitMatrix" }, "lastResult": { "type": "object" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Circuit updated" },
+          "403": { "description": "Not the owner" },
+          "404": { "description": "Circuit not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Circuits"],
+        "summary": "Delete a circuit (owner only)",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "403": { "description": "Not the owner" },
+          "404": { "description": "Circuit not found" }
+        }
+      }
+    },
+    "/circuits/run": {
+      "post": {
+        "tags": ["Circuits"],
+        "summary": "Run a Monte Carlo simulation on a circuit matrix",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["circuitMatrix", "shots"],
+                "properties": {
+                  "circuitMatrix": { "$ref": "#/components/schemas/CircuitMatrix" },
+                  "shots": { "type": "integer", "minimum": 1, "maximum": 10000, "example": 1024 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bitstring outcome counts",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "type": "object", "properties": { "results": { "type": "object", "additionalProperties": { "type": "integer" }, "example": { "0000": 512, "0001": 512 } } } } } } } }
+          }
+        }
+      }
+    },
+    "/circuits/applyGate": {
+      "post": {
+        "tags": ["Circuits"],
+        "summary": "Apply a single gate to a statevector and return the updated qubit states",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["qubitStates", "gate", "qubit"],
+                "properties": {
+                  "qubitStates":  { "$ref": "#/components/schemas/QubitStates" },
+                  "gate":         { "type": "string", "enum": ["H", "X", "M", "CNOT"] },
+                  "qubit":        { "type": "integer", "minimum": 0, "maximum": 3 },
+                  "targetQubit":  { "type": "integer", "minimum": 0, "maximum": 3, "description": "Required when gate is CNOT" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated qubit states (and measurement outcome if gate=M)",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" }, "data": { "type": "object", "properties": { "qubitStates": { "$ref": "#/components/schemas/QubitStates" }, "measurement": { "type": "integer", "nullable": true, "enum": [0, 1, null] } } } } } } }
+          }
+        }
+      }
+    },
+    "/templates/public": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "List public templates (cached 15 min)",
+        "parameters": [
+          { "name": "tag",   "in": "query", "schema": { "type": "string" } },
+          { "name": "page",  "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated public templates", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/PaginatedList" }, { "type": "object", "properties": { "templates": { "type": "array", "items": { "$ref": "#/components/schemas/Template" } } } }] } } } }
+        }
+      }
+    },
+    "/templates/mine": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "List the authenticated user's templates",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [
+          { "name": "page",  "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of own templates" }
+        }
+      }
+    },
+    "/templates": {
+      "post": {
+        "tags": ["Templates"],
+        "summary": "Create a new template",
+        "security": [{ "cookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "circuit"],
+                "properties": {
+                  "name":        { "type": "string", "maxLength": 120 },
+                  "description": { "type": "string", "maxLength": 500 },
+                  "circuit":     { "$ref": "#/components/schemas/CircuitMatrix" },
+                  "tags":        { "type": "array", "items": { "type": "string" } },
+                  "isPublic":    { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Template created" },
+          "400": { "description": "Validation error" }
+        }
+      }
+    },
+    "/templates/{id}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Get a single template by ID (public templates visible to all; private only to owner)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Template object" },
+          "403": { "description": "Access denied (private template)" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "put": {
+        "tags": ["Templates"],
+        "summary": "Update a template (owner only). Invalidates the public cache.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "circuit"],
+                "properties": {
+                  "name":        { "type": "string", "maxLength": 120 },
+                  "description": { "type": "string" },
+                  "circuit":     { "$ref": "#/components/schemas/CircuitMatrix" },
+                  "tags":        { "type": "array", "items": { "type": "string" } },
+                  "isPublic":    { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated" },
+          "403": { "description": "Not the owner" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Templates"],
+        "summary": "Delete a template (owner only). Invalidates the public cache.",
+        "security": [{ "cookieAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "403": { "description": "Not the owner" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}
