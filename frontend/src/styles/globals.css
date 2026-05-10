@@ -1,0 +1,50 @@
+/* Global CSS Variables and Base Styles */
+
+:root {
+  /* Colors */
+  --color-bg: #080C14;
+  --color-bg-alt: #0A0F18;
+  --color-surface: rgba(255, 255, 255, 0.02);
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-teal: #6EE7D0;
+  --color-teal-faint: rgba(110, 231, 208, 0.35);
+  --color-teal-subtle: rgba(110, 231, 208, 0.08);
+  --color-purple: #A78BFA;
+  --color-purple-faint: rgba(167, 139, 250, 0.35);
+  --color-red: #FCA5A5;
+  --color-red-faint: rgba(252, 165, 165, 0.35);
+  --color-yellow: #FCD34D;
+  --color-yellow-faint: rgba(252, 211, 77, 0.35);
+  --color-text-primary: #F1EDE4;
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+  --color-text-faint: rgba(255, 255, 255, 0.2);
+
+  /* Typography */
+  --font-mono: 'Space Mono', monospace;
+  --font-serif: 'Lora', Georgia, serif;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}

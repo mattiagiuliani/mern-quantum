@@ -1,0 +1,238 @@
+/* circuitBuilder.module.css */
+
+@keyframes gateInsert {
+  0%   { opacity: 0; transform: scale(0.45) translateY(-10px); }
+  70%  { opacity: 1; transform: scale(1.08) translateY(2px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes superPulse {
+  0%, 100% { opacity: 0.65; }
+  50%       { opacity: 1; }
+}
+
+@keyframes measureFlash {
+  0%   { transform: scale(1.4); opacity: 0.5; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spin    { to   { transform:rotate(360deg); } }
+@keyframes barGrow { from { width:0; } to { width:var(--w); } }
+@keyframes pulse   { 0%,100%{opacity:.6;} 50%{opacity:1;} }
+
+.runBtn {
+  transition: all 0.22s ease;
+}
+
+.runBtn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 20px rgba(110, 231, 208, 0.3);
+}
+
+.runBtn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.builderLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .builderLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.builderCollapsibleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.builderCollapsibleHeader:hover .builderChevron {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.builderChevron {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  transition: transform 0.2s ease, color 0.2s;
+  line-height: 1;
+}
+
+.builderKbdHint {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.builderKbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+/* Cell styles */
+.cell {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  cursor: default;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.cellEmpty {
+  cursor: cell;
+}
+
+.cellFocused {
+  box-shadow: 0 0 0 2px rgba(110, 231, 208, 0.55), 0 0 16px rgba(110, 231, 208, 0.25);
+}
+
+.cellPending {
+  box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.7), 0 0 16px rgba(167, 139, 250, 0.35);
+}
+
+.cellHoverPreview {
+  cursor: pointer;
+}
+
+.cellPreviewText {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.cellPreviewTextCnot {
+  font-size: 12px;
+}
+
+/* GateChip styles */
+.gateChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  user-select: none;
+  transition: box-shadow 0.3s ease;
+}
+
+.gateChipNew {
+  animation: gateInsert 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.gateChipSm {
+  width: 32px;
+  height: 32px;
+  font-size: 9px;
+}
+
+.gateChipMd {
+  width: 52px;
+  height: 32px;
+  font-size: 10px;
+}
+
+.gateChipSuperposition {
+  animation: superPulse 1.4s ease-in-out infinite;
+}
+
+/* QubitWire styles */
+.qubitWire {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.qubitLabel {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.qubitSequence {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  align-items: center;
+}
+
+/* CircuitSequencePanel styles */
+.sequencePanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.sequencePanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sequencePanelTitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.sequencePanelContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
