@@ -36,16 +36,12 @@ import axios from 'axios'
  * @typedef {{ _id: string, name: string, description: string, circuit: CircuitMatrix, tags: string[], isPublic: boolean, author: { _id: string, username: string } }} Template
  */
 
-// Priority:
-//  1. VITE_API_URL        — set by Docker build arg (e.g. /api/v1 via nginx proxy)
-//  2. VITE_API_URL_PROD   — set in Netlify dashboard for the Render backend
-//  3. VITE_API_URL_DEV    — set in .env.local for local npm-run-dev workflow
-//  4. hardcoded fallback
+// `VITE_API_URL` supports explicit deployment overrides. Production defaults to
+// Vercel's same-origin proxy so HttpOnly cookies are never third-party cookies.
 const _apiBase = (() => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
-  const base = import.meta.env.MODE === 'production'
-    ? import.meta.env.VITE_API_URL_PROD
-    : import.meta.env.VITE_API_URL_DEV
+  if (import.meta.env.MODE === 'production') return '/api/v1'
+  const base = import.meta.env.VITE_API_URL_DEV
   return base ? `${base}/api/v1` : 'http://localhost:3001/api/v1'
 })()
 

@@ -14,8 +14,9 @@ const S = {
     color: C.textPrimary,
     fontFamily: F.mono,
     padding: '80px 24px 32px',
+    minWidth: 0,
   },
-  inner: { maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 },
+  inner: { width: '100%', maxWidth: 860, minWidth: 0, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 },
   eyebrow: { fontSize: 10, letterSpacing: '0.2em', color: C.teal, textTransform: 'uppercase', marginBottom: 6 },
   title: { fontFamily: F.mono, fontSize: 22, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.02em', margin: 0 },
@@ -143,14 +144,21 @@ export default function DashboardPage() {
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
         .dashboard-card { flex-wrap: nowrap; }
         .dashboard-card-actions { display: contents; }
+        .dashboard-card-name { overflow-wrap: anywhere; }
+        .dashboard-pagination { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; gap: 12px; }
+        .dashboard-pagination-actions { display: flex; gap: 6px; flex-shrink: 0; }
         @media (max-width: 640px) {
+          .dashboard-page { padding: 72px 16px 24px !important; }
           .dashboard-card { flex-wrap: wrap !important; }
           .dashboard-card-info { flex: 1 1 100% !important; min-width: 0 !important; }
           .dashboard-card-actions { display: flex !important; gap: 6px; flex-wrap: wrap; width: 100%; }
           .dashboard-card-actions > * { flex: 1 1 auto; min-width: 70px; }
+          .dashboard-pagination { flex-wrap: wrap; align-items: flex-start; }
+          .dashboard-pagination-actions { width: 100%; }
+          .dashboard-pagination-actions > * { flex: 1 1 0; }
         }
       `}</style>
-      <div style={S.inner}>
+      <div style={S.inner} className="dashboard-page">
 
         {/* header */}
         <div style={S.header}>
@@ -191,7 +199,7 @@ export default function DashboardPage() {
               return (
                 <div key={item._id} style={S.card} className="dashboard-card">
                   <div style={{ flex: 1, minWidth: 160 }} className="dashboard-card-info">
-                    <div style={S.cardName}>{item.name}</div>
+                    <div style={S.cardName} className="dashboard-card-name">{item.name}</div>
                     <div style={S.cardMeta}>
                       {qubits} qubit{qubits !== 1 ? 's' : ''} · saved {formatDate(item.updatedAt)}
                     </div>
@@ -265,11 +273,11 @@ export default function DashboardPage() {
 
         {/* pagination */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 }}>
+          <div className="dashboard-pagination">
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {total} circuit{total !== 1 ? 's' : ''} · page {page} / {totalPages}
             </span>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div className="dashboard-pagination-actions">
               <Button
                 variant="outline-secondary"
                 disabled={page <= 1}

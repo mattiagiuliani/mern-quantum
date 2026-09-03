@@ -140,6 +140,12 @@ Browser → nginx (:80) → /api/* → Express (:3001) → MongoDB
                       → /*     → React SPA (static)
 ```
 
+For the Vercel deployment, browser API calls use the same `/api/v1` path and
+Vercel rewrites that path to the Render API. Set `VITE_API_URL=/api/v1` in the
+Vercel project environment. This keeps the HttpOnly session cookies first-party
+to the Vercel site, which is required by mobile browsers that block third-party
+cookies from unrelated domains.
+
 ---
 
 ### 🔧 Tech Stack
@@ -633,7 +639,7 @@ Deployed automatically from the `main` branch via Vercel's GitHub integration.
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | `https://mern-quantum.onrender.com/api/v1` |
+| `VITE_API_URL` | `/api/v1` |
 
 #### Backend — Render
 
@@ -656,7 +662,7 @@ Deployed as a Docker container using the `render.yaml` blueprint in the reposito
 2. Go to [dashboard.render.com](https://dashboard.render.com) → **New → Blueprint** → connect the repo.
 3. Render reads `render.yaml` and creates the `mern-quantum-backend` service automatically.
 4. In the Render dashboard, set `MONGODB_URI` and `CORS_ORIGIN` (both marked `sync: false` in the blueprint — they must be filled in manually).
-5. In the Vercel dashboard, set `VITE_API_URL` to `https://<render-service-name>.onrender.com/api/v1`.
+5. In the Vercel dashboard, set `VITE_API_URL` to `/api/v1`.
 6. Trigger a new Vercel deployment to bake the updated API URL into the frontend bundle.
 
 ---
@@ -1242,7 +1248,7 @@ Deploy automatico dal branch `main` tramite l'integrazione GitHub di Vercel.
 
 | Variabile | Valore |
 |---|---|
-| `VITE_API_URL` | `https://mern-quantum.onrender.com/api/v1` |
+| `VITE_API_URL` | `/api/v1` |
 
 #### Backend — Render
 
@@ -1265,7 +1271,7 @@ Deploy come container Docker tramite il blueprint `render.yaml` nella root del r
 2. Vai su [dashboard.render.com](https://dashboard.render.com) → **New → Blueprint** → connetti il repository.
 3. Render legge `render.yaml` e crea il servizio `mern-quantum-backend` automaticamente.
 4. Nella dashboard Render imposta `MONGODB_URI` e `CORS_ORIGIN` (marcati `sync: false` nel blueprint — vanno inseriti manualmente).
-5. Nella dashboard Vercel imposta `VITE_API_URL` a `https://<nome-servizio-render>.onrender.com/api/v1`.
+5. Nella dashboard Vercel imposta `VITE_API_URL` a `/api/v1`.
 6. Avvia un nuovo deploy su Vercel per incorporare l'URL aggiornato nel bundle frontend.
 
 ---
