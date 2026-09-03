@@ -65,7 +65,7 @@ jobs:
         run: npm run test:coverage --workspace=frontend
 
       - name: Frontend build
-        run: npm run build --workspace=frontend
+        run: VITE_API_URL=http://localhost:3001/api/v1 npm run build --workspace=frontend
 
       - name: Cache Playwright browsers
         id: playwright-cache
